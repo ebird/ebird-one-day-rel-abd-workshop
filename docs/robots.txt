@@ -1,1 +1,1 @@
-Sitemap: https://ebird.github.io/ebird-workshop-roc/sitemap.xml
+Sitemap: https://ebird.github.io/ebird-one-day-rel-abd-workshop/sitemap.xml

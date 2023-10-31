@@ -3,20 +3,19 @@ project:
   output-dir: docs
 
 book:
-  title: "eBird Best Practices Workshop (ROC)"
+  title: "eBird Best Practices: Modeling Relative Abundance"
   chapters:
     - index.qmd
     - ebird.qmd
-    - abundance.qmd
-    - ebirdst.qmd
+    #- abundance.qmd
 
   editor:
     mode: source
 
   page-footer:
-    left: "eBird Best Practices Workshop (ROC)"
-  site-url: https://ebird.github.io/ebird-workshop-roc/
-  repo-url: https://github.com/ebird/ebird-workshop-roc/
+    left: "eBird Best Practices Workshop"
+  site-url: https://ebird.github.io/ebird-one-day-rel-abd-workshop/
+  repo-url: https://github.com/ebird/ebird-one-day-rel-abd-workshop/
   repo-branch: main
   repo-actions: [edit, issue]
 
