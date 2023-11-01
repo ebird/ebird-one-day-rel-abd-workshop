@@ -4,6 +4,7 @@
 .Ruserdata
 data/
 data-raw/
+data-download/
 
 /.quarto/
 .Rdata
