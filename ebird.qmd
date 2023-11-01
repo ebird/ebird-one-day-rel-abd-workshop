@@ -12,11 +12,24 @@ eBird data are collected and organized around the concept of a checklist, repres
 
 Let's compare two eBird checklists: an [incidental observation with missing counts](https://ebird.org/checklist/S136805959) and a [complete traveling count](https://ebird.org/checklist/S136805666). Both checklists can be useful, but only the second checklist provides the type of semi-structured data required for more rigorous applications.
 
-\[TODO - revise to mention both raw and ERD\]. This lesson will focus on the eBird Reference Dataset (ERD), the collection of semi-structured eBird data used by the eBird Status and Trends team for modeling species distributions and relative abundance. A subset of this dataset for Chile was provided in the data package for this workshop. In the following sections we'll provide an introduction to the ERD, describe the associated prediction grid used to make predictions across space, and highlight some of the challenges associated with using eBird data for analysis.
+The first part of this lesson will work with the [eBird Basic Dataset (EBD)](https://science.ebird.org/en/use-ebird-data/download-ebird-data-products). This will allow users to prepare eBird data for relative abundance modeling up to the point of assigning environmental variables as predictors and will be useful for users after the workshop. For the sake of brevity, the second part of this lesson will provide data from the eBird Reference Dataset (ERD), the collection of semi-structured eBird data used by the eBird Status and Trends team for modeling species distributions and relative abundance. A subset of this dataset will be provided in the data package for this workshop. 
 
-## Downloading data {#sec-ebird-download}
+::: callout-tip
+## Tip
+
+This workshop will only cover the eBird Reference Dataset (ERD). For access to the full eBird dataset updated monthly, you'll need to work with the [eBird Basic Dataset (EBD)](https://science.ebird.org/en/use-ebird-data/download-ebird-data-products). For details on working with the EBD consult the [eBird Best Practices book](https://ebird.github.io/ebird-best-practices). Some of the advantages and disadvantages of the two datasts are:
+
+```{r}
+#| echo: false
+knitr::kable(readr::read_csv("data-raw/erd-ebd-comparison.csv"), escape = FALSE)
+```
+:::
+
+# raw eBird Data (EBD) {#sec-ebd}
 
 eBird data are released as two tab-separated text files: the *eBird Basic Dataset (EBD)* containing observation data and the *Sampling Event Data (SED)* containing checklist data. These files are released monthly and contain all validated bird sightings in the eBird database at the time of release. In the EBD, each row corresponds to the sighting of a single species on a checklist, including the count and any other species-level information (e.g. age, sex, species comments, etc.). In the SED, each row corresponds to a checklist, including the date, time, location, effort (e.g. distance traveled, time spent, etc.), and any additional checklist-level information (e.g. whether this is a complete checklist or not).
+
+## Downloading data {#sec-ebird-download}
 
 In this workshop, we'll use [Shining Bronze-Cuckoo](https://ebird.org/species/shbcuc1) observations from Queensland, Australia as an example. We'll start by downloading the corresponding eBird observation (EBD) and checklist (SED) data by visiting the [eBird Basic Dataset](https://ebird.org/data/download/ebd) download page and filling out the Custom Download form to request Shining Bronze-Cuckoo observations from Queensland. **Make sure you check the box "Include sampling event data"**, which will include the SED in the data download in addition to the EBD.
 
@@ -46,7 +59,7 @@ library(ggplot2)
 library(lubridate)
 library(sf)
 
-f_sed <- "data/ebd_BR-RS_fotfly_smp_relJun-2023_sampling.txt" # TODO
+f_sed <- "data/ebd_AU-QLD_shbcuc1_smp_relSep-2023_sampling.txt"
 checklists <- read_sampling(f_sed, unique = FALSE)
 glimpse(checklists)
 ```
@@ -87,7 +100,7 @@ Next, let's import the observation data.
 
 ```{r}
 #| label: ebird-import-ebd
-f_ebd <- "data/ebd_BR-RS_fotfly_smp_relJun-2023.txt" # TODO
+f_ebd <- "data/ebd_AU-QLD_shbcuc1_smp_relSep-2023.txt"
 observations <- read_ebd(f_ebd, unique = FALSE, rollup = FALSE)
 glimpse(observations)
 ```
@@ -102,7 +115,7 @@ When we read the data into R, we used `unique = FALSE` and `rollup = FALSE`. By 
 
 ### Shared checklists {#sec-ebird-import-shared}
 
-eBird allows users to [share checklists](https://support.ebird.org/en/support/solutions/articles/48000625567-checklist-sharing-and-group-accounts#anchorShareChecklists) with other eBirders in their group, for example [this checklist](https://ebird.org/checklist/S95914477) <!--# TODO replace--> is shared by 10 observers. These checklists can be identified by looking at the `group_identifier` variable, which assigns an ID connecting all checklists in the group.
+eBird allows users to [share checklists](https://support.ebird.org/en/support/solutions/articles/48000625567-checklist-sharing-and-group-accounts#anchorShareChecklists) with other eBirders in their group, for example [this checklist](https://ebird.org/checklist/S146159554) is shared by 47 observers! These checklists can be identified by looking at the `group_identifier` variable, which assigns an ID connecting all checklists in the group.
 
 ```{r}
 #| label: ebird-import-shared-example
@@ -137,7 +150,7 @@ Curious what checklists and observers contributed to a shared checklist after it
 ```{r}
 #| label: ebird-import-shared-tip
 checklists_unique %>% 
-  filter(checklist_id == "G10019405") %>% # TODO
+  filter(checklist_id == "G10638158") %>%
   select(checklist_id, group_identifier, sampling_event_identifier, observer_id)
 ```
 :::
@@ -149,7 +162,7 @@ eBird observations can be made at levels below species (e.g. subspecies) or abov
 ::: callout-tip
 ## Tip
 
-In the example dataset used for this workshop, these taxonomic issues don't apply. We have requested Shining Bronze-Cuckoo observations, so we haven't received any observations for taxa above species. However, there are records of Shining Bronze-Cuckoo (Shining) and Shining Bronze-Cuckoo (Golden) in Queensland during this time period. So to be safe, we need to rollup these two subspecies into one set of species-level information. This can happen in many situations.  For example, [this checklist](https://ebird.org/checklist/S100099262) has 10 Yellow-rumped Warblers, 5 each of two Yellow-rumped Warbler subspecies, and one hybrid between the two subspecies. `auk_rollup()` will combine all four of these observations into a single Yellow-rumped Warbler observation.
+In the example dataset used for this workshop, these taxonomic issues don't apply. We have requested Shining Bronze-Cuckoo observations, so we haven't received any observations for taxa above species. However, there are records of Shining Bronze-Cuckoo (Shining) and Shining Bronze-Cuckoo (Golden) in Queensland during this time period (e.g., [this checklist with photos](https://ebird.org/checklist/S102653162). Accordingly, to use all records, we need to rollup these two subspecies into one set of species-level information. This can happen in many situations.  For example, [this checklist](https://ebird.org/checklist/S100099262) has 10 Yellow-rumped Warblers, 5 each of two Yellow-rumped Warbler subspecies, and one hybrid between the two subspecies. `auk_rollup()` will combine all four of these observations into a single Yellow-rumped Warbler observation.
 :::
 
 The function [`auk_rollup()`](https://cornelllabofornithology.github.io/auk/reference/auk_rollup.html) drops all observations not identifiable to a species and rolls up all observations reported below species to the species level.
@@ -157,13 +170,14 @@ The function [`auk_rollup()`](https://cornelllabofornithology.github.io/auk/refe
 ```{r}
 #| label: ebird-import-rollup
 observations_rollup <- auk_rollup(observations)
-# only one checklist is affected by this
+
+# only checklist example with both subspecies and one species-level entry
 observations %>% 
-  filter(sampling_event_identifier == "S99335111") %>% # TODO
+  filter(sampling_event_identifier == "S102653162") %>%
   select(sampling_event_identifier, common_name, subspecies_common_name, 
          observation_count)
 observations_rollup %>% 
-  filter(sampling_event_identifier == "S99335111") %>% # TODO
+  filter(sampling_event_identifier == "S102653162") %>%
   select(sampling_event_identifier, common_name,
          observation_count)
 ```
@@ -238,6 +252,8 @@ nrow(zf_filtered)
 
 We reduced the number of checklists by `r scales::comma(nrow(zf) - nrow(zf_filtered))`, but the checklists remaining are of higher quality.
 
+
+<!--# TODO re-evaluate this based on what's in the ERD -->
 Finally, many of the columns in this data frame are unnecessary or redundant, so we'll select only the columns we need.
 
 ```{r}
@@ -251,24 +267,17 @@ checklists_zf <- zf_filtered %>%
          observation_count, species_observed)
 ```
 
-## eBird Reference Dataset (ERD) {#sec-ebird-erd}
+## Environmental Covariate Assignment
 
-The eBird Reference Dataset (ERD) is a subset of the full eBird database created annually for Status and Trends modeling. Only semi-structured (complete checklists with effort information) traveling and stationary counts from the last 15 years are included in the ERD and we assign a set of environmental variables assigned to checklist.
+At this point, if you were planning to run a species distribution model with this data, you'd want some environmental variables as predictors. However, adding environmental variables can be onerous, computationally expensive, and varies based on use case. We [provide guidance](https://ebird.github.io/ebird-best-practices/envvar.html) in our "Best Practices for Using eBird Data" document on extracting environmental variables to use with eBird data. For continuing this work on your own, please use that reference. For the remainder of this workshop, we're going to skip this process and use the eBird Reference Dataset (ERD) that already contains the environmental variables used in for eBird Status and Trends modeling.
 
-::: callout-tip
-## Tip
+# eBird Reference Dataset (ERD) {#sec-ebird-erd}
 
-This workshop will only cover the eBird Reference Dataset (ERD). For access to the full eBird dataset updated monthly, you'll need to work with the [eBird Basic Dataset (EBD)](https://science.ebird.org/en/use-ebird-data/download-ebird-data-products). For details on working with the EBD consult the [eBird Best Practices book](https://ebird.github.io/ebird-best-practices). Some of the advantages and disadvantages of the two datasts are:
-
-```{r}
-#| echo: false
-knitr::kable(readr::read_csv("data-raw/erd-ebd-comparison.csv"), escape = FALSE)
-```
-:::
+The eBird Reference Dataset (ERD) is a subset of the full eBird database created annually for eBird Status and Trends modeling. Only semi-structured (complete checklists with effort information) traveling and stationary counts from the last 15 years are included in the ERD and we assign a set of environmental variables assigned to checklist. In the following sections we'll provide an introduction to the ERD, describe the associated prediction grid used to make predictions across space, and highlight some of the challenges associated with using eBird data for analysis.
 
 The ERD is distributed in two parts: observation data and checklist data. In the observation dataset, each row corresponds to the sighting of a single species on a checklist, including the count and any other species-level information. In the checklist dataset, each row corresponds to a checklist, including the date, time, location, effort (e.g. distance traveled, time spent, etc.), and any additional checklist-level information.
 
-For this workshop, and extract of the ERD is provided for Chile in the workshop data package. The observations and checklsits datasets are provided in [parquet format](https://parquet.apache.org/), an open source standard for efficient storage and retrieval of tabular data. If you haven't already done so, following the [instructions in the Introduction](#sec-intro-setup) to create an RStudio project and download the workshop data package. The parquet files should be located at:
+For this workshop, and extract of the ERD is provided in the workshop data package. The observations and checklsits datasets are provided in [parquet format](https://parquet.apache.org/), an open source standard for efficient storage and retrieval of tabular data. If you haven't already done so, following the [instructions in the Introduction](#sec-intro-setup) to create an RStudio project and download the workshop data package. The parquet files should be located at:
 
 ```         
 data/ebird_observations_chile_2021.parquet
@@ -365,7 +374,7 @@ head(chutap1_all)
 Finally, for rows where Chucao Tapaculo was not detected we can replace the missing counts with 0. At this time, we recommend removing any checklists with `valid == 0` because there is uncertainty about whether or not the species was detected.
 
 ```{r}
-#| label: ebird-zf-zf
+#| label: ebird-erd-zf
 chutap1_zf <- chutap1_all %>% 
   filter(is.na(valid) | valid == 1) %>% 
   mutate(
