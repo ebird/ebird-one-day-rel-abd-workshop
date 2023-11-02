@@ -7,7 +7,7 @@ book:
   chapters:
     - index.qmd
     - ebird.qmd
-    #- abundance.qmd
+    - abundance.qmd
 
   editor:
     mode: source

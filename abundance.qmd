@@ -15,13 +15,13 @@ The ecological metrics we're ultimately interested in are probability that a spe
 
 The relative abundance model used by eBird Status and Trends, and presented here, is a **two-step hurdle model**. The first step estimates encounter rate and the second step estimates the expected count of individuals on eBird checklists where the species was detected. Then we multiply encounter rate by median count to produce an estimate of relative abundance. Both steps of the hurdle model use random forests.
 
-As an example, let's train a relative abundance model using observations of [Chucao Tapaculo](https://ebird.org/species/chutap1) in January and February from the Chilean regions Araucanía, Los Ríos, and Los Lagos.
+As an example, let's train a relative abundance model using observations of [Shining Bronze-Cuckoo](https://ebird.org/species/shbcuc1) in November, December, and January from Queensland.
 
-![© Veronica Araya Garcia, Macaulay Library (#88260681)](images/chutap1_Veronica-Araya-Garcia_88260681.jpg)
+![© Mat Gilfedder, Macaulay Library (#173816071)](images/173816071.jpg)
 
 ## Data preparation {#sec-abundance-data}
 
-Let's start by reading the eBird data into R and zero-filling it to produce detection/non-detection data for Chucao Tapaculo.
+Let's start by reading the eBird data into R and zero-filling it to produce detection/non-detection data for the species.
 
 ```{r}
 #| label: abundance-data-read
@@ -42,12 +42,12 @@ library(terra)
 set.seed(1)
 
 # detections
-observations <- read_parquet("data/ebird_observations_chile_2021.parquet") %>% 
-  filter(species_code == "chutap1") %>% 
+observations <- read_parquet("data/ebird_observations_AU-QLD_2022.parquet") %>% 
+  filter(species_code == "shbcuc1") %>% 
   select(checklist_id, valid, obs_detected, obs_count)
 
 # zero filled checklists
-checklists <- read_parquet("data/ebird_checklists_chile_2021.parquet") %>%
+checklists <- read_parquet("data/ebird_checklists_AU-QLD_2022.parquet") %>%
   left_join(observations, by = "checklist_id") %>% 
   filter(is.na(valid) | valid) %>% 
   mutate(
@@ -58,29 +58,30 @@ checklists <- read_parquet("data/ebird_checklists_chile_2021.parquet") %>%
   )
 ```
 
-Next let's subset the data to only observations from January and February, summer months during which we expect detectability and habitat associations to be stationary. To reduce variation in detectability, we'll also subset the data to only those checklists less than 6 hours in duration and 10km in length, at speeds below 100km/h, and with 10 or fewer observers. Furthermore, we'll only consider data from the past 15 years (2007-2021).
+Next let's subset the data to only observations from November through January, summer months during which we expect detectability and habitat associations to be stationary. To reduce variation in detectability, we'll also subset the data to only those checklists less than 6 hours in duration and 10km in length, at speeds below 100km/h, and with 10 or fewer observers. Furthermore, we'll only consider data from the past 15 years (2008-2022).
 
 ```{r}
 #| label: abundance-data-filter
 checklists <- checklists %>% 
   filter(
-    # last 10 years of data
-    year >= 2007,
+    # last 15 years of data
+    year >= 2008,
     # jan-feb
-    day_of_year >= 1, day_of_year <= 59,
+    (day_of_year >= 305 | day_of_year <= 31),
     # effort filters
-    effort_hours <= 6,
+    effort_hrs <= 6,
     effort_distance_km <= 10,
     effort_speed_kmph <= 100,
-    number_observers <= 10)
+    num_observers <= 10)
 ```
 
-For the final filtering step, we'll use spatial boundaries included in the data package to subset observations to only those from Araucanía, Los Ríos, and Los Lagos.
+For the final filtering step, we'll use spatial boundaries from Australia's bioregions to subset the data to the region around Brisbane.
 
 ```{r}
 #| label: abundance-data-region
-study_region <- read_sf("data/gis-data.gpkg", layer = "ne_states") %>%
-  filter(state_code %in% c("CL-AR", "CL-LR", "CL-LL"))
+study_region <- read_sf("data/ibra61_reg.gpkg") %>%
+  filter(REG_CODE == "SEQ" & STATE == "QLD") %>%
+  st_transform(crs = 4326)
 
 # subset to regions of interest
 in_region <- checklists %>%
@@ -143,24 +144,25 @@ checklists_train <- checklists_sampled %>%
   select(checklist_id,
          obs_detected, obs_count,
          is_stationary,
-         year, day_of_year, solar_noon_diff_mid,
-         effort_hours, effort_distance_km, effort_speed_kmph,
-         number_observers,
+         year, day_of_year, solar_noon_diff,
+         effort_hrs, effort_distance_km, effort_speed_kmph,
+         num_observers,
          eastness_1km_median, eastness_1km_sd,
          eastness_90m_median, eastness_90m_sd,
          northness_1km_median, northness_1km_sd,
          northness_90m_median, northness_90m_sd,
-         elev_250m_median, elev_250m_sd,
-         intertidal_fs_c1_1500_ed, intertidal_fs_c1_1500_pland,
+         elevation_250m_median, elevation_250m_sd,
+         elevation_30m_median, elevation_30m_sd,
+         intertidal_c1_ed, intertidal_c1_pland,
          ntl_mean, ntl_sd,
          starts_with("astwbd"),
-         starts_with("gp_rtp"),
+         starts_with("road_density"),
          starts_with("mcd12q1"))
 ```
 
 ### Step 1: Encounter rate {#sec-abundance-hurdle-er}
 
-For the first step of the hurdle model we'll train a random forests model to estimate the probability of detection/non-detection of Chucao Tapaculo, a binary classification problem. Random forests are an excellent, general purpose machine learning method suitable for modeling encounter rate in a wide variety of scenarios.
+For the first step of the hurdle model we'll train a random forests model to estimate the probability of detection/non-detection of the species, a binary classification problem. Random forests are an excellent, general purpose machine learning method suitable for modeling encounter rate in a wide variety of scenarios.
 
 Most classification algorithms aim to minimize the overall error rate, which results in poor predictive performance for rare classes. To address this issue, we'll use a balanced random forests approach, a modification of the traditional random forest algorithm designed to handle imbalanced data. In this approach, each of the trees that makes up the random forest is generated using a random sample of the data chosen such that there are an equal number of detections (the rare class) and non-detections (the common class). To use this approach, we'll need to calculate the proportion of detections in the dataset.
 
@@ -213,7 +215,7 @@ threshold <- mcc_f1_summary$best_threshold[1]
 
 ### Step 2: Count {#sec-abundance-hurdle-count}
 
-For the second step of the hurdle model, we train a random forests model to estimate the expected count of individuals on eBird checklists where the species was detected or predicted to be detected by the encounter rate model. So, we'll start by subsetting the data to just these checklists. In addition, we'll remove any observations for which the observer reported that Chucao Tapaculo was present, but didn't report a count of the number of individuals (coded as a count of "X" in the eBird database, but converted to `NA` in our dataset).
+For the second step of the hurdle model, we train a random forests model to estimate the expected count of individuals on eBird checklists where the species was detected or predicted to be detected by the encounter rate model. So, we'll start by subsetting the data to just these checklists. In addition, we'll remove any observations for which the observer reported that species was present, but didn't report a count of the number of individuals (coded as a count of "X" in the eBird database, but converted to `NA` in our dataset).
 
 ```{r}
 #| label: abundance-hurdle-count-subset
@@ -378,7 +380,7 @@ Let's take a moment to consider these predictive performance metrics. How would 
 
 ## Habitat associations {#sec-abundance-habitat}
 
-From the random forest model, we can glean two important sources of information about the association between Chucao Tapaculo detection and features of their local environment. First, **predictor importance** is a measure of the predictive power of each variable used as a predictor in the model, and is calculated as a byproduct of fitting a random forests model. Second, **partial dependence** estimates the marginal effect of one predictor holding all other predictors constant.
+From the random forest model, we can glean two important sources of information about the association between species detection and features of their local environment. First, **predictor importance** is a measure of the predictive power of each variable used as a predictor in the model, and is calculated as a byproduct of fitting a random forests model. Second, **partial dependence** estimates the marginal effect of one predictor holding all other predictors constant.
 
 ### Predictor importance {#sec-abundance-habitat-pi}
 
@@ -403,7 +405,7 @@ ggplot(head(pi, 10)) +
         panel.grid.major.x = element_line(colour = "#cccccc", linewidth = 0.5))
 ```
 
-The most important predictors of detection/non-detection are often effort variables. Indeed, that's the case here: checklist duration, distance traveled, and time of day (`solar_noon_diff`) all appear in the top 5 predictors. This is not surprising: going out at the right time of day and expending more effort searching will lead to a higher probability of detecting Wood Thrush. Focusing on the habitat variables, both elevation variables have high importance, and the top habitat variables are from evergreen broadleaf forest and sparse forests. Note however, that high importance doesn't tell us the direction of the relationship with detection, for that we'll have to look at partial dependence plots.
+The most important predictors of detection/non-detection are often effort variables. Indeed, that's the case here: checklist duration, distance traveled, and time of day (`solar_noon_diff`) all appear in the top 5 predictors. This is not surprising: going out at the right time of day and expending more effort searching will lead to a higher probability of detecting Wood Thrush. Focusing on the habitat variables, both elevation and slope variables have high importance, and the top habitat variables are from evergreen broadleaf forest and dense herbaceous. Note however, that high importance doesn't tell us the direction of the relationship with detection, for that we'll have to look at partial dependence plots.
 
 ::: {.callout-caution icon=false}
 ## Exercise
@@ -414,12 +416,14 @@ Look up the predictor names in `ebirdst_predictors` to see what habitat types th
 ::: {.callout-note icon=false collapse="true"}
 ## Solution
 
+<!--TODO ebirdst_predictors is old-->
+
 ```{r}
 #| label: abundance-habitat-pi-sol
 filter(ebirdst_predictors, 
-       predictor %in% c("mcd12q1_lccs1_fs_c12_1500_pland",
+       predictor %in% c("mcd12q1_lccs1_c12_pland",
                         "ntl_mean",
-                        "mcd12q1_lccs1_fs_c22_1500_pland")) %>% 
+                        "mcd12q1_lccs1_c31_pland")) %>% 
   select(predictor, predictor_label)
 ```
 :::
@@ -518,7 +522,8 @@ Using the prediction grid described in @sec-ebird-pred, we can estimate relative
 
 ```{r}
 #| label: abundance-predict-read
-pred_grid_all <- read_parquet("data/ebird_prediction-grid_chile_2021.parquet")
+pred_grid_all <- read_parquet("data/prediction-grid_year_AU-QLD_2022.parquet")
+
 raster_template <- rast("data/prediction-grid_template.tif") %>% 
   # crop raster to study region
   crop(st_transform(study_region, crs = crs(.)))
@@ -532,21 +537,21 @@ in_region <- pred_grid_all %>%
 pred_grid <- semi_join(pred_grid_all, in_region, by = "srd_id")
 ```
 
-The prediction grid only includes values for the environmental variables, so to make predictions we'll need to add effort variables to this prediction grid. We'll make predictions for a **standard eBird checklist**: a 2 km, 1 hour traveling count at the peak time of day for detecting this species. Finally, we'll make these predictions for Janurary 31, 2021, the middle of our January-February focal window for the latest year for which we have eBird data.
+The prediction grid only includes values for the environmental variables, so to make predictions we'll need to add effort variables to this prediction grid. We'll make predictions for a **standard eBird checklist**: a 2 km, 1 hour traveling count at the peak time of day for detecting this species. Finally, we'll make these predictions for December 15, 2022, the middle of our November-January focal window for the latest year for which we have eBird data.
 
 To find the time of day with the highest detection probability, we can look for the peak of the partial dependence plot.
 
 ```{r}
 #| label:  abundance-predict-pd
 # estimate a partial dependence plot for solar noon diff
-pd_time <- calculate_pd("solar_noon_diff_mid",
+pd_time <- calculate_pd("solar_noon_diff",
                         model = er_model, 
                         data = checklists_train) %>% 
-  select(solar_noon_diff_mid = x, encounter_rate)
+  select(solar_noon_diff = x, encounter_rate)
 
 # partial dependence plot
 ggplot(pd_time) +
-  aes(x = solar_noon_diff_mid, y = encounter_rate) +
+  aes(x = solar_noon_diff, y = encounter_rate) +
   geom_line() +
   scale_x_continuous(breaks = seq(-12, 13, by = 3)) +
   labs(x = "Difference from solar noon",
@@ -554,19 +559,19 @@ ggplot(pd_time) +
        title = "Partial dependence")
 ```
 
-Based on the above plot, it appears that 6 hours before solar noon is the optimal time for observing Chucao Tapaculo. Let's add all the effort variables to the prediction grid.
+Based on the above plot, it appears that about 5 hours before solar noon is the optimal time for observing the species. Let's add all the effort variables to the prediction grid.
 
 ```{r}
 #| label: abundance-predict-effort
 pred_grid_eff <- pred_grid %>% 
-  mutate(year = 2021,
-         day_of_year = 31,
-         solar_noon_diff_mid = -6,
+  mutate(year = 2022,
+         day_of_year = 349,
+         solar_noon_diff = -5.245,
          is_stationary = 0,
-         effort_hours = 1,
+         effort_hrs = 1,
          effort_distance_km = 2,
          effort_speed_kmph = 2,
-         number_observers = 1)
+         num_observers = 1)
 ```
 
 Now we can estimate calibrated encounter rate, count, and abundance for each point on the prediction grid. We also include a binary estimate of the range boundary.
@@ -610,7 +615,8 @@ r_pred <- predictions %>%
   st_transform(crs = crs(raster_template)) %>% 
   # rasterize
   rasterize(raster_template, 
-            field = c("in_range", "encounter_rate", "count", "abundance")) %>% 
+            field = c("in_range", "encounter_rate", "count", "abundance"), 
+            fun = mean) %>% # throws an error without
   setNames(c("in_range", "encounter_rate", "count", "abundance"))
 # trim global raster to study region
 r_pred <- trim(r_pred)
@@ -620,7 +626,7 @@ Prior to mapping these predictions, let's load some contextual GIS data and proj
 
 ```{r}
 # load and project gis data
-map_proj <- "+proj=laea +lat_0=-40 +lon_0=-72"
+map_proj <- "+proj=laea +lon_0=146.95 +lat_0=-19.15 +datum=WGS84 +units=m +no_defs"
 ne_land <- read_sf("data/gis-data.gpkg", "ne_land") %>% 
   st_transform(crs = map_proj) %>% 
   st_geometry()
@@ -638,7 +644,7 @@ r_pred_proj <- crop(r_pred, st_transform(study_region, crs(r_pred))) %>%
   project(map_proj, method = "near")
 ```
 
-Finally we'll produce a map of relative abundance. The values shown on this map are the expected number of Chucao Tapaculo seen by an average eBirder conducting a 2 hour, 1 km checklist on January 31, 2021 at the optimal time of day for detecting the species. Prior to mapping the relative abundance, we'll multiple by the `in_range` layer, which will produce a map showing zero relative abundance where the model predicts that Chucao Tapaculo does not occur.
+Finally we'll produce a map of relative abundance. The values shown on this map are the expected number of birds seen by an average eBirder conducting a 2 hour, 1 km checklist on December 15, 2022 at the optimal time of day for detecting the species. Prior to mapping the relative abundance, we'll multiple by the `in_range` layer, which will produce a map showing zero relative abundance where the model predicts that the species does not occur.
 
 ```{r}
 #| label: abundance-predict-map
@@ -680,7 +686,7 @@ image.plot(zlim = c(0, 1), legend.only = TRUE,
            axis.args = list(at = c(0, 0.5, 1), labels = lbls,
                             fg = "black", col.axis = "black",
                             cex.axis = 0.75, lwd.ticks = 0.5),
-           legend.args = list(text = "Chucao Tapaculo Relative Abundance",
+           legend.args = list(text = "Relative Abundance",
                               side = 2, col = "black",
                               cex = 1, line = 0))
 ```
