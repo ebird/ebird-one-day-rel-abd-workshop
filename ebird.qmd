@@ -252,21 +252,6 @@ nrow(zf_filtered)
 
 We reduced the number of checklists by `r scales::comma(nrow(zf) - nrow(zf_filtered))`, but the checklists remaining are of higher quality.
 
-
-<!--# TODO re-evaluate this based on what's in the ERD -->
-Finally, many of the columns in this data frame are unnecessary or redundant, so we'll select only the columns we need.
-
-```{r}
-#| label: ebird-filtering-select
-checklists_zf <- zf_filtered %>% 
-  select(checklist_id, 
-         latitude, longitude,
-         observation_date, time_observations_started,
-         protocol_type,
-         duration_minutes, effort_distance_km, number_observers,
-         observation_count, species_observed)
-```
-
 ## Environmental Covariate Assignment
 
 At this point, if you were planning to run a species distribution model with this data, you'd want some environmental variables as predictors. However, adding environmental variables can be onerous, computationally expensive, and varies based on use case. We [provide guidance](https://ebird.github.io/ebird-best-practices/envvar.html) in our "Best Practices for Using eBird Data" document on extracting environmental variables to use with eBird data. For continuing this work on your own, please use that reference. For the remainder of this workshop, we're going to skip this process and use the eBird Reference Dataset (ERD) that already contains the environmental variables used in for eBird Status and Trends modeling.
@@ -280,8 +265,8 @@ The ERD is distributed in two parts: observation data and checklist data. In the
 For this workshop, and extract of the ERD is provided in the workshop data package. The observations and checklsits datasets are provided in [parquet format](https://parquet.apache.org/), an open source standard for efficient storage and retrieval of tabular data. If you haven't already done so, following the [instructions in the Introduction](#sec-intro-setup) to create an RStudio project and download the workshop data package. The parquet files should be located at:
 
 ```         
-data/ebird_observations_chile_2021.parquet
-data/ebird_checklists_chile_2021.parquet
+data/ebird_observations_AU-QLD.parquet
+data/ebird_checklists_AU-QLD.parquet
 ```
 
 Let's start by reading these two datasets into R using the `arrow` package and exploring them. We'll start with the checklist dataset.
@@ -296,7 +281,7 @@ library(ggplot2)
 library(sf)
 library(terra)
 
-checklists <- read_parquet("data/ebird_checklists_chile_2021.parquet")
+checklists <- read_parquet("data/ebird_checklists_AU-QLD_2022.parquet")
 glimpse(checklists)
 ```
 
@@ -324,7 +309,7 @@ Now let's look at the observation dataset.
 
 ```{r}
 #| label: ebird-erd-obs
-observations <- read_parquet("data/ebird_observations_chile_2021.parquet")
+observations <- read_parquet("data/ebird_observations_AU-QLD_2022.parquet")
 glimpse(observations)
 ```
 
@@ -339,11 +324,11 @@ This is a much simpler dataset with only five columns:
 ::: callout-tip
 ## Tip
 
-To look up the common name or scientific name of a species try appending the species code to the URL `https://ebird.org/species/`. For example, visit <https://ebird.org/species/eardov1> to look up the species code `eardov1`. This information is also available in the `ebird_taxonomy` data frame in the `auk` package.
+To look up the common name or scientific name of a species try appending the species code to the URL `https://ebird.org/species/`. For example, visit <https://ebird.org/species/maslap1> to look up the species code `maslap1`. This information is also available in the `ebird_taxonomy` data frame in the `auk` package.
 
 ```{r}
 #| label: ebird-erd-species
-filter(ebird_taxonomy, species_code == "eardov1") %>% 
+filter(ebird_taxonomy, species_code == "maslap1") %>% 
   select(species_code, common_name, scientific_name, family)
 ```
 :::
@@ -352,12 +337,12 @@ filter(ebird_taxonomy, species_code == "eardov1") %>%
 
 Complete eBird checklists are extremely valuable because, for all species that weren't reported, we can infer counts of 0. This allows us to convert eBird from presence only data to detection/non-detection data, which allows for much more robust analyses. Note that we don't use the term presence/absence data here because a non-detection doesn't necessarily imply the species was absent, only that observer wasn't able to detect and identify it.
 
-We refer to the process of producing detection/non-detection data as "zero-filling" the eBird data because we're filling in the missing zeros. Let's consider observations of [Chucao Tapaculo](https://ebird.org/species/chutap1/) (species code `chutap1`).
+We refer to the process of producing detection/non-detection data as "zero-filling" the eBird data because we're filling in the missing zeros. Let's consider observations of [Shining Bronze-Cuckoo](https://ebird.org/species/shbcuc1/) (species code `shbcuc1`).
 
 ```{r}
 #| label: ebird-zf-det
-chutap1_detections <- observations %>% 
-  filter(species_code == "chutap1") %>% 
+bird_detections <- observations %>% 
+  filter(species_code == "shbcuc1") %>% 
   select(checklist_id, valid, obs_detected, obs_count)
 ```
 
@@ -365,32 +350,34 @@ Next join this set of detections to the complete set of checklists, including de
 
 ```{r}
 #| label: ebird-zf-join
-chutap1_all <- left_join(checklists, chutap1_detections, by = "checklist_id") %>%
+bird_all <- left_join(checklists, bird_detections, by = "checklist_id") %>%
   select(checklist_id, latitude, longitude, year, day_of_year,
          valid, obs_detected, obs_count)
-head(chutap1_all)
+head(bird_all)
 ```
 
-Finally, for rows where Chucao Tapaculo was not detected we can replace the missing counts with 0. At this time, we recommend removing any checklists with `valid == 0` because there is uncertainty about whether or not the species was detected.
+Finally, for rows where the bird was not detected we can replace the missing counts with 0. At this time, we recommend removing any checklists with `valid == 0` because there is uncertainty about whether or not the species was detected. Let's also filter to a subset of months, to keep the data smaller and relevant to a particular season.
 
 ```{r}
 #| label: ebird-erd-zf
-chutap1_zf <- chutap1_all %>% 
+bird_zf <- bird_all %>% 
   filter(is.na(valid) | valid == 1) %>% 
   mutate(
     # checklist not in the observations dataset are non-detections
     obs_detected = coalesce(obs_detected, 0L),
     # non-detections correspond to a count of 0
     obs_count = if_else(obs_detected == 1, obs_count, 0)
-  )
+  ) %>%
+  # approximately november through january
+  filter(day_of_year >= 305 | day_of_year < 32)
 ```
 
-We can now, for example, make a map of Chucao Tapaculo observations in the Chilean region of Los Lagos. We'll use spatial data that was prepared in advance and provided in the data package.
+We can now, for example, make a map of observations. We'll use spatial data that was prepared in advance and provided in the data package.
 
 ```{r}
 #| label: ebird-zf-map
 # load and project gis data
-map_proj <- "+proj=laea +lat_0=-40 +lon_0=-72"
+map_proj <- "+proj=laea +lon_0=146.95 +lat_0=-19.15 +datum=WGS84 +units=m +no_defs"
 ne_land <- read_sf("data/gis-data.gpkg", "ne_land") %>% 
   st_transform(crs = map_proj) %>% 
   st_geometry()
@@ -400,13 +387,13 @@ ne_country_lines <- read_sf("data/gis-data.gpkg", "ne_country_lines") %>%
 ne_state_lines <- read_sf("data/gis-data.gpkg", "ne_state_lines") %>% 
   st_transform(crs = map_proj) %>% 
   st_geometry()
-los_lagos <- read_sf("data/gis-data.gpkg", "ne_states") %>% 
-  filter(state_code == "CL-LL") %>% 
+target_state <- read_sf("data/gis-data.gpkg", "regions") %>% 
+  filter(state_code == "AU-QLD") %>% 
   st_transform(crs = map_proj) %>% 
   st_geometry()
 
 # prepare ebird data for mapping
-chutap1_sf <- chutap1_zf %>% 
+bird_sf <- bird_zf %>% 
   # convert to spatial points
   st_as_sf(coords = c("longitude", "latitude"), crs = 4326) %>% 
   st_transform(crs = map_proj)
@@ -414,29 +401,29 @@ chutap1_sf <- chutap1_zf %>%
 # map
 par(mar = c(0.25, 0.25, 0.25, 0.25))
 # set up plot area
-plot(st_geometry(los_lagos), col = NA, border = NA)
+plot(st_geometry(target_state), col = NA, border = NA)
 # contextual gis data
 plot(ne_land, col = "#cfcfcf", border = "#888888", lwd = 0.5, add = TRUE)
-plot(los_lagos, col = "#e6e6e6", border = NA, add = TRUE)
+plot(target_state, col = "#e6e6e6", border = NA, add = TRUE)
 plot(ne_state_lines, col = "#ffffff", lwd = 0.75, add = TRUE)
 plot(ne_country_lines, col = "#ffffff", lwd = 1.5, add = TRUE)
 # ebird observations
 # all
-plot(chutap1_sf,
+plot(bird_sf,
      pch = 19, cex = 0.1, col = scales::alpha("#555555", 4),
      add = TRUE)
 # detection
-plot(filter(chutap1_sf, obs_detected == 1),
+plot(filter(bird_sf, obs_detected == 1),
      pch = 19, cex = 0.3, col = scales::alpha("#4daf4a", 1),
      add = TRUE)
 # legend
 legend("bottomright", bty = "n",
        col = c("#555555", "#4daf4a"),
-       legend = c("eBird checklists", "Chucao Tapaculo sightings"),
+       legend = c("eBird checklists", "Bird sightings"),
        pch = 19)
 box()
 par(new = TRUE, mar = c(0, 0, 3, 0))
-title("Chucao Tapaculo eBird Observations\nJune 2007-2021")
+title("Shining Bronze-Cuckoo eBird Observations\nNovember-January 2007-2022")
 ```
 
 ::: {.callout-caution icon="false"}
@@ -448,30 +435,30 @@ Try producing zero-filled, detection/non-detection data for another species.
 ::: {.callout-note icon="false" collapse="true"}
 ## Solution
 
-For example, to produce detection/non-detection data for [Thorn-tailed Rayadito](https://ebird.org/species/thtray1) use:
+For example, to produce detection/non-detection data for [Masked Lapwing](https://ebird.org/species/maslap1) use:
 
 ```{r}
 #| label: sec-ebird-zf-sol
-thtray1_zf <- observations %>% 
-  filter(species_code == "thtray1") %>% 
+sp_zf <- observations %>% 
+  filter(species_code == "maslap1") %>% 
   left_join(checklists, ., by = "checklist_id") %>% 
   filter(is.na(valid) | valid == 1) %>% 
   mutate(obs_detected = coalesce(obs_detected, 0),
          obs_count = if_else(obs_detected == 1, obs_count, 0)) %>% 
   select(checklist_id, obs_detected, obs_count)
-head(thtray1_zf)
+head(sp_zf)
 ```
 :::
 
 ## Prediction grid {#sec-ebird-pred}
 
-The ultimate goal of modeling the occurrence or abundance of a species is frequently to produce a map showing the distribution of that species in space. To do so, we need to know the values of our predictor variables over the region that we intend to make predictions. To make this possible, the ERD is distributed with a **prediction grid**: a regular grid of points covering the entire globe spaced 3km apart for which all the environmental variables have been calculated for the year 2021. Internally, we often refer to this prediction grid as the Spatial Reference Dataset (SRD).
+The ultimate goal of modeling the occurrence or abundance of a species is frequently to produce a map showing the distribution of that species in space. To do so, we need to know the values of our predictor variables over the region that we intend to make predictions. To make this possible, the ERD is distributed with a **prediction grid**: a regular grid of points covering the entire globe spaced 3km apart for which all the environmental variables have been calculated for the year 2022.
 
-The data package for this course contains a subset of the prediction grid for Chile. The file `data/ebird_prediction-grid_chile_2021.parquet` contains the environmental variables for each point on the grid and the file `data/prediction-grid_template.tif` is a 3km by 3km raster template where each each cell center is a point on the prediction grid. Let's start by examining the environmental variables.
+The data package for this course contains an example subset of the prediction grid. The file `data/prediction-grid_year_AU-QLD.parquet` contains the environmental variables for each point on the grid and the file `data/prediction-grid_template.tif` is a 3km by 3km raster template where each each cell center is a point on the prediction grid. Let's start by examining the environmental variables.
 
 ```{r}
 #| label: ebird-pred-envvar
-prediction_grid <- read_parquet("data/ebird_prediction-grid_chile_2021.parquet")
+prediction_grid <- read_parquet("data/prediction-grid_year_AU-QLD_2022.parquet")
 glimpse(prediction_grid)
 ```
 
@@ -483,7 +470,7 @@ raster_template <- rast("data/prediction-grid_template.tif")
 raster_template
 ```
 
-This is a global 2.96km by 2.96km square grid in an equal area projection. We can use the `terra` function `rasterize` to insert values from the prediction grid into the template for mapping. For example, let's make a raster dataset of percent cover of evergreen broadleaf forest (`mcd12q1_lccs1_fs_c12_1500_pland`).
+This is a global 2.96km by 2.96km square grid in an equal area projection. We can use the `terra` function `rasterize` to insert values from the prediction grid into the template for mapping. For example, let's make a raster dataset of percent cover of evergreen broadleaf forest (`mcd12q1_lccs1_c12_pland`).
 
 ```{r}
 #| label: ebird-pred-rasterize
@@ -493,10 +480,10 @@ forest_cover <- prediction_grid %>%
   # transform to the coordinate reference system of the raster
   st_transform(crs = crs(raster_template)) %>% 
   # rasterize the points using the raster template
-  rasterize(raster_template, field = "mcd12q1_lccs1_fs_c12_1500_pland")
+  rasterize(raster_template, field = "mcd12q1_lccs1_c12_pland")
 ```
 
-Now we can make a simple map of evergreen broadleaf forest for Chile. Not that the raster template is global, but we can use `trim()` to remove all areas that have missing values for a map of Chile only.
+Now we can make a simple map of evergreen broadleaf forest. Note that the raster template is global, but we can use `trim()` to remove all areas that have missing values.
 
 ```{r}
 #| label: ebird-pred-map
@@ -507,7 +494,7 @@ The map looks distorted because the prediction grid uses a sinusoidal projection
 
 ## Spatial and temporal bias {#sec-ebird-bias}
 
-Despite the strengths of eBird data, species observations collected through citizen science projects exhibit both spatial and temporal bias requiring special care when using them for rigorous analyses. **Spatial bias** occurs because eBird participants are more likely to be collect data near their homes, in easily accessible areas such as roadsides, or in areas known to be good for birding. Looking at the above map of Chucao Tapaculo observations it's clear that the eBird checklists are clustered around cities and roads. **Temporal bias** occurs because participants preferentially collect data when they are available, such as weekends, and at times of year when they expect to observe more birds, notably during the breeding season. We can plot the distribution of checklists over the days of the year to see this bias:
+Despite the strengths of eBird data, species observations collected through citizen science projects exhibit both spatial and temporal bias requiring special care when using them for rigorous analyses. **Spatial bias** occurs because eBird participants are more likely to be collect data near their homes, in easily accessible areas such as roadsides, or in areas known to be good for birding. Looking at the above map of bird observations it's clear that the eBird checklists are clustered around cities and roads. **Temporal bias** occurs because participants preferentially collect data when they are available, such as weekends, and at times of year when they expect to observe more birds, notably during the breeding season. We can plot the distribution of checklists over the days of the year to see this bias:
 
 ```{r}
 #| label: sec-ebird-bias-dayplot
@@ -520,16 +507,16 @@ ggplot(checklist_per_day) +
   scale_y_continuous(labels = scales::comma) +
   labs(x = "Day of Year", y = "# checklists",
        title = "Daily eBird checklists submission") +
-  theme_gray()
+  theme_bw()
 ```
 
-Three is a clear seasonal pattern to the number of eBird checklists submitted (fewer checklists in the winter) as well as daily and weekly variation within seasons. In addition, there are two huge spikes in checklists submissions, one in May and the other in October, what do you think could be causing these sudden increases?
+Three is a clear seasonal pattern to the number of eBird checklists submitted (fewer checklists in March) as well as daily and weekly variation within seasons. In addition, there are spikes in checklists submissions. What do you think could be causing these sudden increases?
 
-Finally, for most species, there is strong **class imbalance** in the data, meaning there are usually many more non-detections than detections. As a results, a distribution model predicting that the species is absent everywhere will have high accuracy, but no ecological value. For example, the prevalence rate of Chucao Tapaculo in Chile is only `r scales::percent(mean(chutap1_zf$obs_detected))`.
+Finally, for most species, there is strong **class imbalance** in the data, meaning there are usually many more non-detections than detections. As a results, a distribution model predicting that the species is absent everywhere will have high accuracy, but no ecological value. For example, the prevalence rate of this species is only `r scales::percent(mean(bird_zf$obs_detected))`.
 
 ```{r}
 #| label: sec-ebird-bias-prev
-mean(chutap1_zf$obs_detected)
+mean(bird_zf$obs_detected)
 ```
 
 To address these three issues (spatial bias, temporal bias, and class imbalance) we recommend subsampling the data using a technique called **case controlled grid sampling**. We overlay an equal area 3km by 3km grid over the checklists, then sample one detection and one non-detection from each grid cell for each week of each year. Let's look at a simple example of how spatial grid sampling works."
@@ -544,23 +531,22 @@ To address these three issues (spatial bias, temporal bias, and class imbalance)
 
 ![5. Recombine the detections and non-detections. The observations are much more evenly distributed in space and the prevalence of detections has increased from 2% to 20%.](images/grid-sampling_5.png)
 
-The function `grid_sample_stratified()` from the `ebirdst` package is specifically designed to perform case controlled grid sampling on eBird data. For example, let's apply this technique to the Chucao Tapaculo observations.
+The function `grid_sample_stratified()` from the `ebirdst` package is specifically designed to perform case controlled grid sampling on eBird data. For example, let's apply this technique to the bird observations.
 
 ```{r}
 #| label: sec-ebird-bias-sample
 # perform case controlled grid sampling
-chutap1_sampled <- grid_sample_stratified(chutap1_zf, 
-                                          obs_column = "obs_detected")
+bird_sampled <- grid_sample_stratified(bird_zf, obs_column = "obs_detected")
 
 # how many checklists were removed?
-nrow(chutap1_zf)
-nrow(chutap1_sampled)
+nrow(bird_zf)
+nrow(bird_sampled)
 
 # how has prevalence changed
-mean(chutap1_zf$obs_detected)
-mean(chutap1_sampled$obs_detected)
+mean(bird_zf$obs_detected)
+mean(bird_sampled$obs_detected)
 ```
 
-So, after sampling, we're left with `r scales::percent(nrow(chutap1_sampled) / nrow(chutap1_zf))` of the observations we started with, but the spatial and temporal bias has been significantly reduced.
+So, after sampling, we're left with `r scales::percent(nrow(bird_sampled) / nrow(bird_zf))` of the observations we started with, but the spatial and temporal bias has been significantly reduced.
 
 We now have the data and tools necessary to model relative abundance using eBird data, which will be the focus of [Lesson -@sec-abundance].

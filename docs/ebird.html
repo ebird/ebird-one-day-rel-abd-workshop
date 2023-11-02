@@ -671,21 +671,10 @@ Tip
 <span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 342881</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>We reduced the number of checklists by 166,413, but the checklists remaining are of higher quality.</p>
-<!--# TODO re-evaluate this based on what's in the ERD -->
-<p>Finally, many of the columns in this data frame are unnecessary or redundant, so we’ll select only the columns we need.</p>
-<div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>checklists_zf <span class="ot">&lt;-</span> zf_filtered <span class="sc">%&gt;%</span> </span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(checklist_id, </span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>         latitude, longitude,</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>         observation_date, time_observations_started,</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>         protocol_type,</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>         duration_minutes, effort_distance_km, number_observers,</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>         observation_count, species_observed)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
 </section>
 <section id="environmental-covariate-assignment" class="level2" data-number="2.5">
 <h2 data-number="2.5" class="anchored" data-anchor-id="environmental-covariate-assignment"><span class="header-section-number">2.5</span> Environmental Covariate Assignment</h2>
-<p>At this point, if you were planning to run a species distribution model with this data, you’d want some environmental variables as predictors. However, adding environmental variables can be onerous, computationally expensive, and varies based on use case. We <a href="https://ebird.github.io/ebird-best-practices/envvar.html">provide guidance</a> in our “Best Practices for Using eBird Data” document on extracting environmental variables to use with eBird data. For continuing this work on your own, please use that reference. For the remainder of this workshop (cooking show), we’re going to call on the magic of television, reach under the counter and pull out a fully baked cake that we can frost and decorate for the rest of the day.</p>
+<p>At this point, if you were planning to run a species distribution model with this data, you’d want some environmental variables as predictors. However, adding environmental variables can be onerous, computationally expensive, and varies based on use case. We <a href="https://ebird.github.io/ebird-best-practices/envvar.html">provide guidance</a> in our “Best Practices for Using eBird Data” document on extracting environmental variables to use with eBird data. For continuing this work on your own, please use that reference. For the remainder of this workshop, we’re going to skip this process and use the eBird Reference Dataset (ERD) that already contains the environmental variables used in for eBird Status and Trends modeling.</p>
 </section>
 </section>
 <section id="sec-ebird-erd" class="level1" data-number="3">
@@ -693,120 +682,173 @@ Tip
 <p>The eBird Reference Dataset (ERD) is a subset of the full eBird database created annually for eBird Status and Trends modeling. Only semi-structured (complete checklists with effort information) traveling and stationary counts from the last 15 years are included in the ERD and we assign a set of environmental variables assigned to checklist. In the following sections we’ll provide an introduction to the ERD, describe the associated prediction grid used to make predictions across space, and highlight some of the challenges associated with using eBird data for analysis.</p>
 <p>The ERD is distributed in two parts: observation data and checklist data. In the observation dataset, each row corresponds to the sighting of a single species on a checklist, including the count and any other species-level information. In the checklist dataset, each row corresponds to a checklist, including the date, time, location, effort (e.g.&nbsp;distance traveled, time spent, etc.), and any additional checklist-level information.</p>
 <p>For this workshop, and extract of the ERD is provided in the workshop data package. The observations and checklsits datasets are provided in <a href="https://parquet.apache.org/">parquet format</a>, an open source standard for efficient storage and retrieval of tabular data. If you haven’t already done so, following the <a href="index.html#sec-intro-setup">instructions in the Introduction</a> to create an RStudio project and download the workshop data package. The parquet files should be located at:</p>
-<pre><code>data/ebird_observations_chile_2021.parquet
-data/ebird_checklists_chile_2021.parquet</code></pre>
+<pre><code>data/ebird_observations_AU-QLD.parquet
+data/ebird_checklists_AU-QLD.parquet</code></pre>
 <p>Let’s start by reading these two datasets into R using the <code>arrow</code> package and exploring them. We’ll start with the checklist dataset.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(arrow)</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(auk)</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ebirdst)</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf)</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(terra)</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>checklists <span class="ot">&lt;-</span> <span class="fu">read_parquet</span>(<span class="st">"data/ebird_checklists_chile_2021.parquet"</span>)</span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(checklists)</span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Rows: 186,908</span></span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: 98</span></span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ checklist_id                     &lt;int&gt; 100062145, 100164965, 100241802, 1003…</span></span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ observer_id                      &lt;int&gt; 796344, 2898939, 1676221, 185941, 534…</span></span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ loc_id                           &lt;chr&gt; "Trax_S100062145", "L6626679", "Trax_…</span></span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ longitude                        &lt;dbl&gt; -71.5, -71.0, -73.1, -70.2, -71.4, -7…</span></span>
-<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ latitude                         &lt;dbl&gt; -32.9, -35.6, -40.6, -33.4, -32.7, -3…</span></span>
-<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ is_stationary                    &lt;dbl&gt; 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1…</span></span>
-<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ year                             &lt;int&gt; 2021, 2021, 2021, 2012, 2021, 2021, 2…</span></span>
-<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ day_of_year                      &lt;dbl&gt; 363, 365, 361, 52, 355, 360, 52, 55, …</span></span>
-<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ hours_of_day                     &lt;dbl&gt; 10.95, 12.58, 16.05, 10.50, 9.70, 8.3…</span></span>
-<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ solar_noon_diff_mid              &lt;dbl&gt; -2.805, 1.778, 2.178, -2.936, -3.771,…</span></span>
-<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ effort_hours                     &lt;dbl&gt; 0.134, 6.000, 0.084, 1.000, 0.567, 1.…</span></span>
-<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ effort_distance_km               &lt;dbl&gt; 0.340, 10.000, 0.000, 1.000, 0.000, 0…</span></span>
-<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ effort_speed_kmph                &lt;dbl&gt; 2.5373, 1.6667, 0.0000, 1.0000, 0.000…</span></span>
-<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ number_observers                 &lt;int&gt; 1, 2, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1…</span></span>
-<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_u10                          &lt;dbl&gt; 1.697, 3.316, 0.665, 1.505, 1.937, 0.…</span></span>
-<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_v10                          &lt;dbl&gt; -3.1903, -1.0040, 3.4476, 0.5027, -1.…</span></span>
-<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_d2m                          &lt;dbl&gt; 12.541, 5.630, 13.361, -0.621, 12.222…</span></span>
-<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_t2m                          &lt;dbl&gt; 14.78, 19.96, 25.15, 12.15, 14.30, 11…</span></span>
-<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_hcc                          &lt;dbl&gt; 0.00000, 0.00000, 0.00000, 0.00000, 0…</span></span>
-<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_i10fg                        &lt;dbl&gt; 7.26, 12.81, 8.13, 8.37, 5.12, 4.71, …</span></span>
-<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_mcc                          &lt;dbl&gt; 0.0000, 0.0000, 0.6003, 0.0000, 0.000…</span></span>
-<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_lcc                          &lt;dbl&gt; 0.95340, 0.00000, 0.61487, 0.00000, 0…</span></span>
-<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_sf                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_rf                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_slc                          &lt;dbl&gt; 65.10, -30.67, -67.19, -41.09, 33.80,…</span></span>
-<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_msl                          &lt;dbl&gt; 101779, 101232, 101667, 101732, 10144…</span></span>
-<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_1km_median              &lt;dbl&gt; -0.00411, 0.00732, 0.01700, 0.04960, …</span></span>
-<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_1km_sd                  &lt;dbl&gt; 0.2935, 0.2253, 0.1927, 0.1467, 0.244…</span></span>
-<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_90m_median              &lt;dbl&gt; -3.69e-02, 4.44e-02, -1.63e-03, 3.76e…</span></span>
-<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_90m_sd                  &lt;dbl&gt; 0.04190, 0.25816, 0.02712, 0.28047, 0…</span></span>
-<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_1km_median             &lt;dbl&gt; -0.169959, 0.052624, 0.505542, 0.0875…</span></span>
-<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_1km_sd                 &lt;dbl&gt; 0.1812, 0.2881, 0.2597, 0.2418, 0.225…</span></span>
-<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_90m_median             &lt;dbl&gt; 5.68e-03, -5.46e-02, 9.70e-03, -2.38e…</span></span>
-<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_90m_sd                 &lt;dbl&gt; 0.03915, 0.24051, 0.04255, 0.12762, 0…</span></span>
-<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elev_30m_median                  &lt;dbl&gt; 34, 2130, 38, 2833, 76, 2904, 3146, 1…</span></span>
-<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elev_30m_sd                      &lt;dbl&gt; 33.82, 117.60, 16.55, 187.94, 25.46, …</span></span>
-<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elev_250m_median                 &lt;dbl&gt; 43.00, 2137.00, 45.00, 2843.00, 50.50…</span></span>
-<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elev_250m_sd                     &lt;dbl&gt; 38.21, 101.61, 14.22, 181.66, 58.86, …</span></span>
-<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ island                           &lt;dbl&gt; 30002, 30002, 30002, 30002, 30002, 30…</span></span>
-<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_fs_c1_1500_ed             &lt;dbl&gt; 3.38, 0.00, 0.00, 0.00, 5.55, 0.00, 0…</span></span>
-<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_fs_c1_1500_pland          &lt;dbl&gt; 9.07, 0.00, 0.00, 0.00, 44.78, 0.00, …</span></span>
-<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_fs_c2_1500_ed             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_fs_c2_1500_pland          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_fs_c3_1500_ed             &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-57"><a href="#cb15-57" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_fs_c3_1500_pland          &lt;dbl&gt; 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.…</span></span>
-<span id="cb15-58"><a href="#cb15-58" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gp_rtp_1                         &lt;dbl&gt; 0, 0, 537, 0, 0, 0, 0, 0, 718, 0, 0, …</span></span>
-<span id="cb15-59"><a href="#cb15-59" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gp_rtp_2                         &lt;dbl&gt; 391.3, 0.0, 40.7, 949.0, 328.6, 0.0, …</span></span>
-<span id="cb15-60"><a href="#cb15-60" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gp_rtp_3                         &lt;dbl&gt; 0.0, 0.0, 24.3, 112.8, 0.0, 41.4, 0.0…</span></span>
-<span id="cb15-61"><a href="#cb15-61" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gp_rtp_4                         &lt;dbl&gt; 0, 0, 0, 0, 0, 181, 0, 0, 0, 0, 0, 0,…</span></span>
-<span id="cb15-62"><a href="#cb15-62" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gp_rtp_5                         &lt;dbl&gt; 0, 0, 0, 0, 0, 244, 0, 0, 0, 0, 0, 0,…</span></span>
-<span id="cb15-63"><a href="#cb15-63" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ intertidal_fs_c1_1500_ed         &lt;dbl&gt; 10.045, 0.000, 0.000, 0.000, 7.137, 0…</span></span>
-<span id="cb15-64"><a href="#cb15-64" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ intertidal_fs_c1_1500_pland      &lt;dbl&gt; 1.65, 0.00, 0.00, 0.00, 1.24, 0.00, 0…</span></span>
-<span id="cb15-65"><a href="#cb15-65" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ ntl_mean                         &lt;dbl&gt; 1.75005, 0.00000, 28.90472, 1.67595, …</span></span>
-<span id="cb15-66"><a href="#cb15-66" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ ntl_sd                           &lt;dbl&gt; 1.5571, 0.0000, 14.7225, 2.4289, 1.54…</span></span>
-<span id="cb15-67"><a href="#cb15-67" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c1_1500_ed      &lt;dbl&gt; 4.20, 14.10, 0.00, 7.19, 0.00, 5.40, …</span></span>
-<span id="cb15-68"><a href="#cb15-68" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c1_1500_pland   &lt;dbl&gt; 8.33, 36.73, 0.00, 63.89, 0.00, 47.22…</span></span>
-<span id="cb15-69"><a href="#cb15-69" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c2_1500_ed      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-70"><a href="#cb15-70" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c2_1500_pland   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-71"><a href="#cb15-71" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c11_1500_ed     &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-72"><a href="#cb15-72" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c11_1500_pland  &lt;dbl&gt; 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.…</span></span>
-<span id="cb15-73"><a href="#cb15-73" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c12_1500_ed     &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-74"><a href="#cb15-74" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c12_1500_pland  &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-75"><a href="#cb15-75" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c13_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-76"><a href="#cb15-76" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c13_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-77"><a href="#cb15-77" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c14_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-78"><a href="#cb15-78" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c14_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-79"><a href="#cb15-79" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c15_1500_ed     &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-80"><a href="#cb15-80" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c15_1500_pland  &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-81"><a href="#cb15-81" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c16_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-82"><a href="#cb15-82" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c16_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-83"><a href="#cb15-83" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c21_1500_ed     &lt;dbl&gt; 3.60, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-84"><a href="#cb15-84" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c21_1500_pland  &lt;dbl&gt; 5.56, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-85"><a href="#cb15-85" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c22_1500_ed     &lt;dbl&gt; 13.19, 2.64, 3.08, 0.00, 6.68, 0.00, …</span></span>
-<span id="cb15-86"><a href="#cb15-86" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c22_1500_pland  &lt;dbl&gt; 61.11, 6.12, 89.80, 0.00, 61.90, 0.00…</span></span>
-<span id="cb15-87"><a href="#cb15-87" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c31_1500_ed     &lt;dbl&gt; 7.79, 2.20, 3.08, 0.00, 3.08, 3.00, 0…</span></span>
-<span id="cb15-88"><a href="#cb15-88" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c31_1500_pland  &lt;dbl&gt; 22.22, 10.20, 10.20, 0.00, 4.76, 5.56…</span></span>
-<span id="cb15-89"><a href="#cb15-89" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c32_1500_ed     &lt;dbl&gt; 0.00, 18.06, 0.00, 7.19, 0.00, 8.39, …</span></span>
-<span id="cb15-90"><a href="#cb15-90" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c32_1500_pland  &lt;dbl&gt; 0.00, 46.94, 0.00, 36.11, 0.00, 47.22…</span></span>
-<span id="cb15-91"><a href="#cb15-91" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c41_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-92"><a href="#cb15-92" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c41_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-93"><a href="#cb15-93" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c42_1500_ed     &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-94"><a href="#cb15-94" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c42_1500_pland  &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-95"><a href="#cb15-95" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c43_1500_ed     &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-96"><a href="#cb15-96" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c43_1500_pland  &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-97"><a href="#cb15-97" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c255_1500_ed    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-98"><a href="#cb15-98" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c255_1500_pland &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-99"><a href="#cb15-99" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_fs_c25_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-100"><a href="#cb15-100" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_fs_c25_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-101"><a href="#cb15-101" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_fs_c35_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-102"><a href="#cb15-102" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_fs_c35_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb15-103"><a href="#cb15-103" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_fs_c36_1500_ed     &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-104"><a href="#cb15-104" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_fs_c36_1500_pland  &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-105"><a href="#cb15-105" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_fs_c27_1500_ed     &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 2.06, 0.00, 0…</span></span>
-<span id="cb15-106"><a href="#cb15-106" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_fs_c27_1500_pland  &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 2.38, 0.00, 0…</span></span>
-<span id="cb15-107"><a href="#cb15-107" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_fs_c50_1500_ed     &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-108"><a href="#cb15-108" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_fs_c50_1500_pland  &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0…</span></span>
-<span id="cb15-109"><a href="#cb15-109" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_fs_c51_1500_ed     &lt;dbl&gt; 0.0, 0.0, 0.0, 0.0, 0.0, 2.4, 0.0, 0.…</span></span>
-<span id="cb15-110"><a href="#cb15-110" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_fs_c51_1500_pland  &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 2.78, 0…</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(arrow)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(auk)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ebirdst)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(terra)</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>checklists <span class="ot">&lt;-</span> <span class="fu">read_parquet</span>(<span class="st">"data/ebird_checklists_AU-QLD_2022.parquet"</span>)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(checklists)</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Rows: 357,213</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: 151</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ checklist_id                       &lt;int&gt; 10864617, 11307779, 6971840, 102635…</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ observer_id                        &lt;int&gt; 267451, 113983, 162908, 113983, 166…</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ loc_id                             &lt;chr&gt; "L1560273", "L1650808", "H2561832",…</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ longitude                          &lt;dbl&gt; 153, 150, 139, 153, 145, 145, 152, …</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ latitude                           &lt;dbl&gt; -26.7, -28.5, -19.0, -27.2, -16.7, …</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ year                               &lt;dbl&gt; 2012, 2012, 2008, 2012, 2011, 2011,…</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ day_of_year                        &lt;dbl&gt; 128, 212, 180, 85, 284, 283, 34, 31…</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ hours_of_day                       &lt;dbl&gt; 11.65, 10.00, 6.75, 11.42, 15.42, 1…</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ solar_noon_diff                    &lt;dbl&gt; -0.0376, -2.0229, -2.0756, -0.3446,…</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ is_stationary                      &lt;lgl&gt; TRUE, FALSE, FALSE, TRUE, FALSE, FA…</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ effort_hrs                         &lt;dbl&gt; 0.167, 0.167, 8.000, 0.333, 0.583, …</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ effort_distance_km                 &lt;dbl&gt; 0.000, 2.000, 5.000, 0.000, 1.500, …</span></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ effort_speed_kmph                  &lt;dbl&gt; 0.000, 11.976, 0.625, 0.000, 2.573,…</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ num_observers                      &lt;int&gt; 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1,…</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ moon_fraction                      &lt;dbl&gt; 0.9874, 0.8842, 0.3158, 0.0594, 0.9…</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ moon_altitude                      &lt;dbl&gt; -0.7028, -0.6658, 0.6386, 0.6711, -…</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_u10                            &lt;dbl&gt; -0.1342, 1.9947, -5.1339, -3.9891, …</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_v10                            &lt;dbl&gt; -0.7690, 2.7611, 0.5347, 2.1257, -0…</span></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_d2m                            &lt;dbl&gt; 8.580, 4.629, 8.287, 15.854, 11.582…</span></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_t2m                            &lt;dbl&gt; 23.02, 8.29, 24.84, 23.38, 34.93, 3…</span></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_hcc                            &lt;dbl&gt; 0.000, 0.000, 0.000, 0.000, 0.000, …</span></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_i10fg                          &lt;dbl&gt; 4.03, 8.04, 9.83, 10.01, 9.44, 8.83…</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_mcc                            &lt;dbl&gt; 0.000000, 0.000000, 0.000000, 0.695…</span></span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_lcc                            &lt;dbl&gt; 0.0000, 0.0000, 0.0000, 0.7405, 0.0…</span></span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_sf                             &lt;dbl&gt; 8.67e-19, 0.00e+00, 0.00e+00, 0.00e…</span></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_rf                             &lt;dbl&gt; 6.07e-18, 0.00e+00, 0.00e+00, 2.95e…</span></span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_slc                            &lt;dbl&gt; -133.21, -11.49, -12.35, -25.82, -1…</span></span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ cds_msl                            &lt;dbl&gt; 101650, 102426, 101786, 101845, 100…</span></span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_1km_median                &lt;dbl&gt; 3.61e-02, 8.04e-08, 4.35e-02, 1.12e…</span></span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_1km_sd                    &lt;dbl&gt; 0.23578, 0.03816, 0.20141, 0.25066,…</span></span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_90m_median                &lt;dbl&gt; 7.59e-02, -2.76e-04, 1.51e-03, 2.74…</span></span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_90m_sd                    &lt;dbl&gt; 0.16464, 0.00216, 0.02724, 0.06283,…</span></span>
+<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_1km_median               &lt;dbl&gt; -7.84e-03, 7.70e-02, -6.40e-02, 5.0…</span></span>
+<span id="cb14-46"><a href="#cb14-46" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_1km_sd                   &lt;dbl&gt; 0.0950, 0.0705, 0.2609, 0.1821, 0.3…</span></span>
+<span id="cb14-47"><a href="#cb14-47" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_90m_median               &lt;dbl&gt; -0.007993, 0.000385, -0.001088, -0.…</span></span>
+<span id="cb14-48"><a href="#cb14-48" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_90m_sd                   &lt;dbl&gt; 0.13644, 0.00182, 0.01958, 0.05712,…</span></span>
+<span id="cb14-49"><a href="#cb14-49" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elevation_250m_median              &lt;dbl&gt; 317.450, 218.982, 143.838, 64.140, …</span></span>
+<span id="cb14-50"><a href="#cb14-50" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elevation_250m_sd                  &lt;dbl&gt; 47.518, 0.878, 6.444, 18.788, 10.73…</span></span>
+<span id="cb14-51"><a href="#cb14-51" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elevation_30m_median               &lt;dbl&gt; 314.7, 217.5, 140.8, 54.8, 394.3, 3…</span></span>
+<span id="cb14-52"><a href="#cb14-52" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elevation_30m_sd                   &lt;dbl&gt; 55.56, 5.03, 9.73, 24.47, 13.24, 13…</span></span>
+<span id="cb14-53"><a href="#cb14-53" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ island                             &lt;dbl&gt; 30005, 30005, 30005, 30005, 30005, …</span></span>
+<span id="cb14-54"><a href="#cb14-54" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_c1_ed                       &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb14-55"><a href="#cb14-55" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_c1_pland                    &lt;dbl&gt; 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, …</span></span>
+<span id="cb14-56"><a href="#cb14-56" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_c2_ed                       &lt;dbl&gt; 0.000, 0.000, 0.000, 0.000, 0.000, …</span></span>
+<span id="cb14-57"><a href="#cb14-57" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_c2_pland                    &lt;dbl&gt; 0.000, 0.000, 0.000, 0.000, 0.000, …</span></span>
+<span id="cb14-58"><a href="#cb14-58" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_c3_ed                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-59"><a href="#cb14-59" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_c3_pland                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-60"><a href="#cb14-60" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gsw_c2_pland                       &lt;dbl&gt; 0.00000, 0.95312, 0.31391, 0.02483,…</span></span>
+<span id="cb14-61"><a href="#cb14-61" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gsw_c2_ed                          &lt;dbl&gt; 0.000, 10.504, 3.197, 0.550, 0.184,…</span></span>
+<span id="cb14-62"><a href="#cb14-62" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gsw_c3_pland                       &lt;dbl&gt; 0.00000, 0.19215, 0.12675, 0.00993,…</span></span>
+<span id="cb14-63"><a href="#cb14-63" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gsw_c3_ed                          &lt;dbl&gt; 0.00, 3.01, 1.58, 0.22, 0.00, 0.00,…</span></span>
+<span id="cb14-64"><a href="#cb14-64" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ intertidal_c1_ed                   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-65"><a href="#cb14-65" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ intertidal_c1_pland                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-66"><a href="#cb14-66" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ ntl_mean                           &lt;dbl&gt; 0.0000, 7.1068, 0.0000, 0.2118, 0.2…</span></span>
+<span id="cb14-67"><a href="#cb14-67" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ ntl_sd                             &lt;dbl&gt; 0.0000, 5.4641, 0.0000, 0.3992, 0.4…</span></span>
+<span id="cb14-68"><a href="#cb14-68" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ road_density_c1                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-69"><a href="#cb14-69" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ road_density_c2                    &lt;dbl&gt; 0, 681, 0, 545, 422, 422, 0, 0, 0, …</span></span>
+<span id="cb14-70"><a href="#cb14-70" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ road_density_c3                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-71"><a href="#cb14-71" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ road_density_c4                    &lt;dbl&gt; 410, 321, 631, 0, 80, 80, 287, 287,…</span></span>
+<span id="cb14-72"><a href="#cb14-72" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ road_density_c5                    &lt;dbl&gt; 0, 0, 0, 766, 0, 0, 0, 0, 0, 0, 0, …</span></span>
+<span id="cb14-73"><a href="#cb14-73" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c1_ed                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-74"><a href="#cb14-74" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c1_pland             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-75"><a href="#cb14-75" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c2_ed                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-76"><a href="#cb14-76" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c2_pland             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-77"><a href="#cb14-77" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c11_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-78"><a href="#cb14-78" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c11_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-79"><a href="#cb14-79" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c12_ed               &lt;dbl&gt; 9.50, 0.00, 0.00, 1.69, 0.00, 0.00,…</span></span>
+<span id="cb14-80"><a href="#cb14-80" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c12_pland            &lt;dbl&gt; 53.60, 0.00, 0.00, 1.00, 0.00, 0.00…</span></span>
+<span id="cb14-81"><a href="#cb14-81" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c13_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-82"><a href="#cb14-82" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c13_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-83"><a href="#cb14-83" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c14_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-84"><a href="#cb14-84" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c14_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-85"><a href="#cb14-85" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c15_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-86"><a href="#cb14-86" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c15_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-87"><a href="#cb14-87" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c16_ed               &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 1.76, 1.76,…</span></span>
+<span id="cb14-88"><a href="#cb14-88" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c16_pland            &lt;dbl&gt; 0.000, 0.000, 0.000, 0.000, 3.001, …</span></span>
+<span id="cb14-89"><a href="#cb14-89" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c21_ed               &lt;dbl&gt; 11.66, 0.00, 0.00, 5.08, 0.00, 0.00…</span></span>
+<span id="cb14-90"><a href="#cb14-90" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c21_pland            &lt;dbl&gt; 43.72, 0.00, 0.00, 9.40, 0.00, 0.00…</span></span>
+<span id="cb14-91"><a href="#cb14-91" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c22_ed               &lt;dbl&gt; 2.158, 6.516, 0.899, 9.734, 4.405, …</span></span>
+<span id="cb14-92"><a href="#cb14-92" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c22_pland            &lt;dbl&gt; 2.678, 41.444, 0.776, 76.168, 90.99…</span></span>
+<span id="cb14-93"><a href="#cb14-93" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c31_ed               &lt;dbl&gt; 0.00, 6.52, 7.64, 4.66, 2.64, 2.64,…</span></span>
+<span id="cb14-94"><a href="#cb14-94" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c31_pland            &lt;dbl&gt; 0.00, 58.56, 32.62, 13.43, 6.00, 6.…</span></span>
+<span id="cb14-95"><a href="#cb14-95" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c32_ed               &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb14-96"><a href="#cb14-96" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c32_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-97"><a href="#cb14-97" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c41_ed               &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb14-98"><a href="#cb14-98" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c41_pland            &lt;dbl&gt; 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 24.9,…</span></span>
+<span id="cb14-99"><a href="#cb14-99" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c42_ed               &lt;dbl&gt; 0.0, 0.0, 4.5, 0.0, 0.0, 0.0, 14.7,…</span></span>
+<span id="cb14-100"><a href="#cb14-100" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c42_pland            &lt;dbl&gt; 0.00, 0.00, 9.01, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb14-101"><a href="#cb14-101" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c43_ed               &lt;dbl&gt; 0.0, 0.0, 10.3, 0.0, 0.0, 0.0, 0.0,…</span></span>
+<span id="cb14-102"><a href="#cb14-102" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c43_pland            &lt;dbl&gt; 0.0, 0.0, 57.6, 0.0, 0.0, 0.0, 0.0,…</span></span>
+<span id="cb14-103"><a href="#cb14-103" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c255_ed              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-104"><a href="#cb14-104" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c255_pland           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-105"><a href="#cb14-105" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_c25_ed               &lt;dbl&gt; 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, …</span></span>
+<span id="cb14-106"><a href="#cb14-106" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_c25_pland            &lt;dbl&gt; 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, …</span></span>
+<span id="cb14-107"><a href="#cb14-107" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_c35_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-108"><a href="#cb14-108" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_c35_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-109"><a href="#cb14-109" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_c36_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-110"><a href="#cb14-110" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_c36_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-111"><a href="#cb14-111" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_c27_ed               &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb14-112"><a href="#cb14-112" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_c27_pland            &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb14-113"><a href="#cb14-113" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_c50_ed               &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb14-114"><a href="#cb14-114" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_c50_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-115"><a href="#cb14-115" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_c51_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-116"><a href="#cb14-116" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_c51_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-117"><a href="#cb14-117" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ has_shoreline                      &lt;lgl&gt; FALSE, FALSE, FALSE, FALSE, FALSE, …</span></span>
+<span id="cb14-118"><a href="#cb14-118" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_waveheight_mean          &lt;dbl&gt; 0.000, 0.000, 0.000, 0.000, 0.000, …</span></span>
+<span id="cb14-119"><a href="#cb14-119" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_waveheight_sd            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-120"><a href="#cb14-120" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_tidal_range_mean         &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb14-121"><a href="#cb14-121" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_tidal_range_sd           &lt;dbl&gt; 0.00000, 0.00000, 0.00000, 0.00000,…</span></span>
+<span id="cb14-122"><a href="#cb14-122" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_chlorophyll_mean         &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb14-123"><a href="#cb14-123" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_chlorophyll_sd           &lt;dbl&gt; 0.0000, 0.0000, 0.0000, 0.0000, 0.0…</span></span>
+<span id="cb14-124"><a href="#cb14-124" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_turbidity_mean           &lt;dbl&gt; 0.000, 0.000, 0.000, 0.000, 0.000, …</span></span>
+<span id="cb14-125"><a href="#cb14-125" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_turbidity_sd             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-126"><a href="#cb14-126" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_sinuosity_mean           &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb14-127"><a href="#cb14-127" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_sinuosity_sd             &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb14-128"><a href="#cb14-128" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_slope_mean               &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb14-129"><a href="#cb14-129" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_slope_sd                 &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb14-130"><a href="#cb14-130" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_outflow_density_mean     &lt;dbl&gt; 0.00e+00, 0.00e+00, 0.00e+00, 0.00e…</span></span>
+<span id="cb14-131"><a href="#cb14-131" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_outflow_density_sd       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-132"><a href="#cb14-132" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_erodibility_n            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-133"><a href="#cb14-133" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_erodibility_c1_density   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-134"><a href="#cb14-134" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_erodibility_c2_density   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-135"><a href="#cb14-135" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_erodibility_c3_density   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-136"><a href="#cb14-136" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_erodibility_c4_density   &lt;dbl&gt; 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, …</span></span>
+<span id="cb14-137"><a href="#cb14-137" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_n           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-138"><a href="#cb14-138" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c1_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-139"><a href="#cb14-139" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c2_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-140"><a href="#cb14-140" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c3_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-141"><a href="#cb14-141" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c4_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-142"><a href="#cb14-142" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c5_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-143"><a href="#cb14-143" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c6_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-144"><a href="#cb14-144" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c7_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-145"><a href="#cb14-145" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c8_density  &lt;dbl&gt; 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, …</span></span>
+<span id="cb14-146"><a href="#cb14-146" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c9_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-147"><a href="#cb14-147" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c10_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-148"><a href="#cb14-148" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c11_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-149"><a href="#cb14-149" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c12_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-150"><a href="#cb14-150" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c13_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-151"><a href="#cb14-151" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c14_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-152"><a href="#cb14-152" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c15_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-153"><a href="#cb14-153" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c16_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-154"><a href="#cb14-154" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c17_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-155"><a href="#cb14-155" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c18_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-156"><a href="#cb14-156" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c19_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-157"><a href="#cb14-157" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c20_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-158"><a href="#cb14-158" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c21_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-159"><a href="#cb14-159" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c22_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-160"><a href="#cb14-160" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c23_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb14-161"><a href="#cb14-161" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ has_evi                            &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE,…</span></span>
+<span id="cb14-162"><a href="#cb14-162" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ evi_median                         &lt;dbl&gt; 56375768, 26577095, 16683584, 49761…</span></span>
+<span id="cb14-163"><a href="#cb14-163" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ evi_sd                             &lt;dbl&gt; 4978114, 6436081, 5444980, 6107690,…</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>There are a huge number of columns in this data frame. The first set of variables provide standard information about the checklist: where and when did the observation occur, what type of search was conducted, and how much search effort was expended. Two important differences exist between these variables and what you will see if you look at the raw eBird dataset: when a GPS track is available we replace the checklist or hotspot location (latitude/longitude) with the centroid of the track and the time of the checklist is expressed as the difference between the checklist midpoint and solar noon, a more ecologically meaningful quantity.</p>
 <p>All the remaining variables are not collected in eBird, they’re calculated and added by the Status and Trends team based on external data sets. First, those variables beginning with <code>cds_</code>, provides information about the weather at the time of the observation, which can impact detectibility. This is followed by a large suite of environmental variables summarized over a 3km diameter circular neighborhood around the checklist location, including variables describing: elevation and topography, land and water cover, roads, and night time lights (a proxy for urban development). Most variables are summarized as two quantities expressing composition (what habitat is available) and configuration (how that habitat is arranged spatially). For continuous variables, such as elevation, we use the median and standard deviation. For categorical variables, such as land cover class, we use percent landcover (<code>pland</code>) and edge density (<code>ed</code>).</p>
@@ -818,12 +860,12 @@ data/ebird_checklists_chile_2021.parquet</code></pre>
 </div>
 <p>The land and water cover variables can be challenging to interpret based on their names alone (e.g.&nbsp;<code>mcd12q1_lccs1_fs_c12_1500_pland</code>); however, these names can be looked up in the <code>ebirdst_predictors</code> data frame from the <code>ebirdst</code> package. For example, let’s look up what <code>mcd12q1_lccs1_fs_c12_1500_pland</code> corresponds to.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(ebirdst_predictors, predictor <span class="sc">==</span> <span class="st">"mcd12q1_lccs1_fs_c12_1500_pland"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(predictor, predictor_label)</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 1 × 2</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   predictor                       predictor_label                  </span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                           &lt;chr&gt;                            </span></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 mcd12q1_lccs1_fs_c12_1500_pland Evergreen Broadleaf Forests PLAND</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(ebirdst_predictors, predictor <span class="sc">==</span> <span class="st">"mcd12q1_lccs1_fs_c12_1500_pland"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(predictor, predictor_label)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 1 × 2</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   predictor                       predictor_label                  </span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                           &lt;chr&gt;                            </span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 mcd12q1_lccs1_fs_c12_1500_pland Evergreen Broadleaf Forests PLAND</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -840,15 +882,15 @@ Checkpoint
 </div>
 <p>Now let’s look at the observation dataset.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>observations <span class="ot">&lt;-</span> <span class="fu">read_parquet</span>(<span class="st">"data/ebird_observations_chile_2021.parquet"</span>)</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(observations)</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Rows: 2,167,750</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: 5</span></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ checklist_id &lt;dbl&gt; 1e+08, 1e+08, 1e+08, 1e+08, 1e+08, 1e+08, 1e+08, 1e+08, 1…</span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ species_code &lt;chr&gt; "eardov1", "blcsis2", "gyhsif1", "houwre", "rebhaw2", "au…</span></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ valid        &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRU…</span></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ obs_detected &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …</span></span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ obs_count    &lt;int&gt; 2, 4, 2, 1, 1, 3, 1, 4, 1, NA, 1, NA, NA, NA, NA, NA, NA,…</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>  observations <span class="ot">&lt;-</span> <span class="fu">read_parquet</span>(<span class="st">"data/ebird_observations_AU-QLD_2022.parquet"</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(observations)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Rows: 7,292,576</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: 5</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ checklist_id &lt;dbl&gt; 10928575, 10928575, 10928575, 10928575, 10928575, 1092857…</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ species_code &lt;chr&gt; "rensti", "faecur", "grsplo", "strher", "cursan", "batgod…</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ valid        &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRU…</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ obs_detected &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ obs_count    &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N…</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>This is a much simpler dataset with only five columns:</p>
 <ul>
@@ -870,103 +912,105 @@ Tip
 <div class="callout-body-container callout-body">
 <p>To look up the common name or scientific name of a species try appending the species code to the URL <code>https://ebird.org/species/</code>. For example, visit <a href="https://ebird.org/species/eardov1" class="uri">https://ebird.org/species/eardov1</a> to look up the species code <code>eardov1</code>. This information is also available in the <code>ebird_taxonomy</code> data frame in the <code>auk</code> package.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(ebird_taxonomy, species_code <span class="sc">==</span> <span class="st">"eardov1"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(species_code, common_name, scientific_name, family)</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   species_code common_name    scientific_name     family</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1      eardov1  Eared Dove Zenaida auriculata Columbidae</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(ebird_taxonomy, species_code <span class="sc">==</span> <span class="st">"maslap1"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(species_code, common_name, scientific_name, family)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   species_code    common_name scientific_name       family</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1      maslap1 Masked Lapwing  Vanellus miles Charadriidae</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
 <section id="zero-filling-ebird-data" class="level2" data-number="3.1">
 <h2 data-number="3.1" class="anchored" data-anchor-id="zero-filling-ebird-data"><span class="header-section-number">3.1</span> Zero-filling eBird data</h2>
 <p>Complete eBird checklists are extremely valuable because, for all species that weren’t reported, we can infer counts of 0. This allows us to convert eBird from presence only data to detection/non-detection data, which allows for much more robust analyses. Note that we don’t use the term presence/absence data here because a non-detection doesn’t necessarily imply the species was absent, only that observer wasn’t able to detect and identify it.</p>
-<p>We refer to the process of producing detection/non-detection data as “zero-filling” the eBird data because we’re filling in the missing zeros. Let’s consider observations of <a href="https://ebird.org/species/chutap1/">Chucao Tapaculo</a> (species code <code>chutap1</code>).</p>
+<p>We refer to the process of producing detection/non-detection data as “zero-filling” the eBird data because we’re filling in the missing zeros. Let’s consider observations of <a href="https://ebird.org/species/shbcuc1/">Shining Bronze-Cuckoo</a> (species code <code>shbcuc1</code>).</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>chutap1_detections <span class="ot">&lt;-</span> observations <span class="sc">%&gt;%</span> </span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(species_code <span class="sc">==</span> <span class="st">"chutap1"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(checklist_id, valid, obs_detected, obs_count)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>bird_detections <span class="ot">&lt;-</span> observations <span class="sc">%&gt;%</span> </span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(species_code <span class="sc">==</span> <span class="st">"shbcuc1"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(checklist_id, valid, obs_detected, obs_count)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next join this set of detections to the complete set of checklists, including detections and non-detections.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>chutap1_all <span class="ot">&lt;-</span> <span class="fu">left_join</span>(checklists, chutap1_detections, <span class="at">by =</span> <span class="st">"checklist_id"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(checklist_id, latitude, longitude, year, day_of_year,</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>         valid, obs_detected, obs_count)</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(chutap1_all)</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 8</span></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   checklist_id latitude longitude  year day_of_year valid obs_detected obs_count</span></span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt; &lt;int&gt;       &lt;dbl&gt; &lt;lgl&gt;        &lt;int&gt;     &lt;int&gt;</span></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1    100062145    -32.9     -71.5  2021         363 NA              NA        NA</span></span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2    100164965    -35.6     -71.0  2021         365 TRUE             1        NA</span></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3    100241802    -40.6     -73.1  2021         361 NA              NA        NA</span></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4     10034436    -33.4     -70.2  2012          52 NA              NA        NA</span></span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5    100385722    -32.7     -71.4  2021         355 NA              NA        NA</span></span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6    100390786    -33.3     -70.3  2021         360 NA              NA        NA</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>bird_all <span class="ot">&lt;-</span> <span class="fu">left_join</span>(checklists, bird_detections, <span class="at">by =</span> <span class="st">"checklist_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(checklist_id, latitude, longitude, year, day_of_year,</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>         valid, obs_detected, obs_count)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(bird_all)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 8</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   checklist_id latitude longitude  year day_of_year valid obs_detected obs_count</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt; &lt;dbl&gt;       &lt;dbl&gt; &lt;lgl&gt;        &lt;int&gt;     &lt;int&gt;</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1     10864617    -26.7      153.  2012         128 NA              NA        NA</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2     11307779    -28.5      150.  2012         212 NA              NA        NA</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3      6971840    -19.0      139.  2008         180 NA              NA        NA</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4     10263519    -27.2      153.  2012          85 TRUE             1         1</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5      9020044    -16.7      145.  2011         284 NA              NA        NA</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6      9009843    -16.7      145.  2011         283 NA              NA        NA</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>Finally, for rows where Chucao Tapaculo was not detected we can replace the missing counts with 0. At this time, we recommend removing any checklists with <code>valid == 0</code> because there is uncertainty about whether or not the species was detected.</p>
+<p>Finally, for rows where the bird was not detected we can replace the missing counts with 0. At this time, we recommend removing any checklists with <code>valid == 0</code> because there is uncertainty about whether or not the species was detected. Let’s also filter to a subset of months, to keep the data smaller and relevant to a particular season.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>chutap1_zf <span class="ot">&lt;-</span> chutap1_all <span class="sc">%&gt;%</span> </span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">is.na</span>(valid) <span class="sc">|</span> valid <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># checklist not in the observations dataset are non-detections</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">obs_detected =</span> <span class="fu">coalesce</span>(obs_detected, 0L),</span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># non-detections correspond to a count of 0</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">obs_count =</span> <span class="fu">if_else</span>(obs_detected <span class="sc">==</span> <span class="dv">1</span>, obs_count, <span class="dv">0</span>)</span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>bird_zf <span class="ot">&lt;-</span> bird_all <span class="sc">%&gt;%</span> </span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">is.na</span>(valid) <span class="sc">|</span> valid <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># checklist not in the observations dataset are non-detections</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">obs_detected =</span> <span class="fu">coalesce</span>(obs_detected, 0L),</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># non-detections correspond to a count of 0</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">obs_count =</span> <span class="fu">if_else</span>(obs_detected <span class="sc">==</span> <span class="dv">1</span>, obs_count, <span class="dv">0</span>)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># approximately november through january</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(day_of_year <span class="sc">&gt;=</span> <span class="dv">305</span> <span class="sc">|</span> day_of_year <span class="sc">&lt;</span> <span class="dv">32</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>We can now, for example, make a map of Chucao Tapaculo observations in the Chilean region of Los Lagos. We’ll use spatial data that was prepared in advance and provided in the data package.</p>
+<p>We can now, for example, make a map of observations. We’ll use spatial data that was prepared in advance and provided in the data package.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load and project gis data</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>map_proj <span class="ot">&lt;-</span> <span class="st">"+proj=laea +lat_0=-40 +lon_0=-72"</span></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>ne_land <span class="ot">&lt;-</span> <span class="fu">read_sf</span>(<span class="st">"data/gis-data.gpkg"</span>, <span class="st">"ne_land"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>ne_country_lines <span class="ot">&lt;-</span> <span class="fu">read_sf</span>(<span class="st">"data/gis-data.gpkg"</span>, <span class="st">"ne_country_lines"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>ne_state_lines <span class="ot">&lt;-</span> <span class="fu">read_sf</span>(<span class="st">"data/gis-data.gpkg"</span>, <span class="st">"ne_state_lines"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>los_lagos <span class="ot">&lt;-</span> <span class="fu">read_sf</span>(<span class="st">"data/gis-data.gpkg"</span>, <span class="st">"ne_states"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(state_code <span class="sc">==</span> <span class="st">"CL-LL"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
-<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
-<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a><span class="co"># prepare ebird data for mapping</span></span>
-<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>chutap1_sf <span class="ot">&lt;-</span> chutap1_zf <span class="sc">%&gt;%</span> </span>
-<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># convert to spatial points</span></span>
-<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"longitude"</span>, <span class="st">"latitude"</span>), <span class="at">crs =</span> <span class="dv">4326</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj)</span>
-<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a><span class="co"># map</span></span>
-<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="fl">0.25</span>, <span class="fl">0.25</span>, <span class="fl">0.25</span>, <span class="fl">0.25</span>))</span>
-<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a><span class="co"># set up plot area</span></span>
-<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(los_lagos), <span class="at">col =</span> <span class="cn">NA</span>, <span class="at">border =</span> <span class="cn">NA</span>)</span>
-<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a><span class="co"># contextual gis data</span></span>
-<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ne_land, <span class="at">col =</span> <span class="st">"#cfcfcf"</span>, <span class="at">border =</span> <span class="st">"#888888"</span>, <span class="at">lwd =</span> <span class="fl">0.5</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(los_lagos, <span class="at">col =</span> <span class="st">"#e6e6e6"</span>, <span class="at">border =</span> <span class="cn">NA</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ne_state_lines, <span class="at">col =</span> <span class="st">"#ffffff"</span>, <span class="at">lwd =</span> <span class="fl">0.75</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ne_country_lines, <span class="at">col =</span> <span class="st">"#ffffff"</span>, <span class="at">lwd =</span> <span class="fl">1.5</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a><span class="co"># ebird observations</span></span>
-<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a><span class="co"># all</span></span>
-<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(chutap1_sf,</span>
-<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a>     <span class="at">pch =</span> <span class="dv">19</span>, <span class="at">cex =</span> <span class="fl">0.1</span>, <span class="at">col =</span> scales<span class="sc">::</span><span class="fu">alpha</span>(<span class="st">"#555555"</span>, <span class="dv">4</span>),</span>
-<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>     <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Warning in plot.sf(chutap1_sf, pch = 19, cex = 0.1, col =</span></span>
-<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; scales::alpha("#555555", : ignoring all but the first attribute</span></span>
-<span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a><span class="co"># detection</span></span>
-<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">filter</span>(chutap1_sf, obs_detected <span class="sc">==</span> <span class="dv">1</span>),</span>
-<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a>     <span class="at">pch =</span> <span class="dv">19</span>, <span class="at">cex =</span> <span class="fl">0.3</span>, <span class="at">col =</span> scales<span class="sc">::</span><span class="fu">alpha</span>(<span class="st">"#4daf4a"</span>, <span class="dv">1</span>),</span>
-<span id="cb22-42"><a href="#cb22-42" aria-hidden="true" tabindex="-1"></a>     <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb22-43"><a href="#cb22-43" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Warning in plot.sf(filter(chutap1_sf, obs_detected == 1), pch = 19, cex = 0.3,</span></span>
-<span id="cb22-44"><a href="#cb22-44" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; : ignoring all but the first attribute</span></span>
-<span id="cb22-45"><a href="#cb22-45" aria-hidden="true" tabindex="-1"></a><span class="co"># legend</span></span>
-<span id="cb22-46"><a href="#cb22-46" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"bottomright"</span>, <span class="at">bty =</span> <span class="st">"n"</span>,</span>
-<span id="cb22-47"><a href="#cb22-47" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"#555555"</span>, <span class="st">"#4daf4a"</span>),</span>
-<span id="cb22-48"><a href="#cb22-48" aria-hidden="true" tabindex="-1"></a>       <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"eBird checklists"</span>, <span class="st">"Chucao Tapaculo sightings"</span>),</span>
-<span id="cb22-49"><a href="#cb22-49" aria-hidden="true" tabindex="-1"></a>       <span class="at">pch =</span> <span class="dv">19</span>)</span>
-<span id="cb22-50"><a href="#cb22-50" aria-hidden="true" tabindex="-1"></a><span class="fu">box</span>()</span>
-<span id="cb22-51"><a href="#cb22-51" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">new =</span> <span class="cn">TRUE</span>, <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">3</span>, <span class="dv">0</span>))</span>
-<span id="cb22-52"><a href="#cb22-52" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">"Chucao Tapaculo eBird Observations</span><span class="sc">\n</span><span class="st">June 2007-2021"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load and project gis data</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>map_proj <span class="ot">&lt;-</span> <span class="st">"+proj=laea +lon_0=146.95 +lat_0=-19.15 +datum=WGS84 +units=m +no_defs"</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>ne_land <span class="ot">&lt;-</span> <span class="fu">read_sf</span>(<span class="st">"data/gis-data.gpkg"</span>, <span class="st">"ne_land"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>ne_country_lines <span class="ot">&lt;-</span> <span class="fu">read_sf</span>(<span class="st">"data/gis-data.gpkg"</span>, <span class="st">"ne_country_lines"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>ne_state_lines <span class="ot">&lt;-</span> <span class="fu">read_sf</span>(<span class="st">"data/gis-data.gpkg"</span>, <span class="st">"ne_state_lines"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>target_state <span class="ot">&lt;-</span> <span class="fu">read_sf</span>(<span class="st">"data/gis-data.gpkg"</span>, <span class="st">"regions"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(state_code <span class="sc">==</span> <span class="st">"AU-QLD"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a><span class="co"># prepare ebird data for mapping</span></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>bird_sf <span class="ot">&lt;-</span> bird_zf <span class="sc">%&gt;%</span> </span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># convert to spatial points</span></span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"longitude"</span>, <span class="st">"latitude"</span>), <span class="at">crs =</span> <span class="dv">4326</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj)</span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a><span class="co"># map</span></span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="fl">0.25</span>, <span class="fl">0.25</span>, <span class="fl">0.25</span>, <span class="fl">0.25</span>))</span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a><span class="co"># set up plot area</span></span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(target_state), <span class="at">col =</span> <span class="cn">NA</span>, <span class="at">border =</span> <span class="cn">NA</span>)</span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a><span class="co"># contextual gis data</span></span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ne_land, <span class="at">col =</span> <span class="st">"#cfcfcf"</span>, <span class="at">border =</span> <span class="st">"#888888"</span>, <span class="at">lwd =</span> <span class="fl">0.5</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(target_state, <span class="at">col =</span> <span class="st">"#e6e6e6"</span>, <span class="at">border =</span> <span class="cn">NA</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ne_state_lines, <span class="at">col =</span> <span class="st">"#ffffff"</span>, <span class="at">lwd =</span> <span class="fl">0.75</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ne_country_lines, <span class="at">col =</span> <span class="st">"#ffffff"</span>, <span class="at">lwd =</span> <span class="fl">1.5</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a><span class="co"># ebird observations</span></span>
+<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a><span class="co"># all</span></span>
+<span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(bird_sf,</span>
+<span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a>     <span class="at">pch =</span> <span class="dv">19</span>, <span class="at">cex =</span> <span class="fl">0.1</span>, <span class="at">col =</span> scales<span class="sc">::</span><span class="fu">alpha</span>(<span class="st">"#555555"</span>, <span class="dv">4</span>),</span>
+<span id="cb21-36"><a href="#cb21-36" aria-hidden="true" tabindex="-1"></a>     <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Warning in plot.sf(bird_sf, pch = 19, cex = 0.1, col = scales::alpha("#555555",</span></span>
+<span id="cb21-38"><a href="#cb21-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; : ignoring all but the first attribute</span></span>
+<span id="cb21-39"><a href="#cb21-39" aria-hidden="true" tabindex="-1"></a><span class="co"># detection</span></span>
+<span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">filter</span>(bird_sf, obs_detected <span class="sc">==</span> <span class="dv">1</span>),</span>
+<span id="cb21-41"><a href="#cb21-41" aria-hidden="true" tabindex="-1"></a>     <span class="at">pch =</span> <span class="dv">19</span>, <span class="at">cex =</span> <span class="fl">0.3</span>, <span class="at">col =</span> scales<span class="sc">::</span><span class="fu">alpha</span>(<span class="st">"#4daf4a"</span>, <span class="dv">1</span>),</span>
+<span id="cb21-42"><a href="#cb21-42" aria-hidden="true" tabindex="-1"></a>     <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-43"><a href="#cb21-43" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Warning in plot.sf(filter(bird_sf, obs_detected == 1), pch = 19, cex = 0.3, :</span></span>
+<span id="cb21-44"><a href="#cb21-44" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ignoring all but the first attribute</span></span>
+<span id="cb21-45"><a href="#cb21-45" aria-hidden="true" tabindex="-1"></a><span class="co"># legend</span></span>
+<span id="cb21-46"><a href="#cb21-46" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"bottomright"</span>, <span class="at">bty =</span> <span class="st">"n"</span>,</span>
+<span id="cb21-47"><a href="#cb21-47" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"#555555"</span>, <span class="st">"#4daf4a"</span>),</span>
+<span id="cb21-48"><a href="#cb21-48" aria-hidden="true" tabindex="-1"></a>       <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"eBird checklists"</span>, <span class="st">"Bird sightings"</span>),</span>
+<span id="cb21-49"><a href="#cb21-49" aria-hidden="true" tabindex="-1"></a>       <span class="at">pch =</span> <span class="dv">19</span>)</span>
+<span id="cb21-50"><a href="#cb21-50" aria-hidden="true" tabindex="-1"></a><span class="fu">box</span>()</span>
+<span id="cb21-51"><a href="#cb21-51" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">new =</span> <span class="cn">TRUE</span>, <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">3</span>, <span class="dv">0</span>))</span>
+<span id="cb21-52"><a href="#cb21-52" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">"Shining Bronze-Cuckoo eBird Observations</span><span class="sc">\n</span><span class="st">November-January 2007-2022"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1000,25 +1044,25 @@ Solution
 </div>
 <div id="callout-13" class="callout-13-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<p>For example, to produce detection/non-detection data for <a href="https://ebird.org/species/thtray1">Thorn-tailed Rayadito</a> use:</p>
+<p>For example, to produce detection/non-detection data for <a href="https://ebird.org/species/maslap1">Masked Lapwing</a> use:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>thtray1_zf <span class="ot">&lt;-</span> observations <span class="sc">%&gt;%</span> </span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(species_code <span class="sc">==</span> <span class="st">"thtray1"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(checklists, ., <span class="at">by =</span> <span class="st">"checklist_id"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">is.na</span>(valid) <span class="sc">|</span> valid <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">obs_detected =</span> <span class="fu">coalesce</span>(obs_detected, <span class="dv">0</span>),</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">obs_count =</span> <span class="fu">if_else</span>(obs_detected <span class="sc">==</span> <span class="dv">1</span>, obs_count, <span class="dv">0</span>)) <span class="sc">%&gt;%</span> </span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(checklist_id, obs_detected, obs_count)</span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(thtray1_zf)</span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 3</span></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   checklist_id obs_detected obs_count</span></span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          &lt;dbl&gt;        &lt;dbl&gt;     &lt;dbl&gt;</span></span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1    100062145            0         0</span></span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2    100164965            1        NA</span></span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3    100241802            0         0</span></span>
-<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4     10034436            0         0</span></span>
-<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5    100385722            0         0</span></span>
-<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6    100390786            0         0</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>sp_zf <span class="ot">&lt;-</span> observations <span class="sc">%&gt;%</span> </span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(species_code <span class="sc">==</span> <span class="st">"maslap1"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(checklists, ., <span class="at">by =</span> <span class="st">"checklist_id"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">is.na</span>(valid) <span class="sc">|</span> valid <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">obs_detected =</span> <span class="fu">coalesce</span>(obs_detected, <span class="dv">0</span>),</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">obs_count =</span> <span class="fu">if_else</span>(obs_detected <span class="sc">==</span> <span class="dv">1</span>, obs_count, <span class="dv">0</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(checklist_id, obs_detected, obs_count)</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(sp_zf)</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 3</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   checklist_id obs_detected obs_count</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          &lt;dbl&gt;        &lt;dbl&gt;     &lt;dbl&gt;</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1     10864617            0         0</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2     11307779            1         2</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3      6971840            0         0</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4     10263519            0         0</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5      9020044            0         0</span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6      9009843            0         0</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1026,124 +1070,164 @@ Solution
 </section>
 <section id="sec-ebird-pred" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="sec-ebird-pred"><span class="header-section-number">3.2</span> Prediction grid</h2>
-<p>The ultimate goal of modeling the occurrence or abundance of a species is frequently to produce a map showing the distribution of that species in space. To do so, we need to know the values of our predictor variables over the region that we intend to make predictions. To make this possible, the ERD is distributed with a <strong>prediction grid</strong>: a regular grid of points covering the entire globe spaced 3km apart for which all the environmental variables have been calculated for the year 2021. Internally, we often refer to this prediction grid as the Spatial Reference Dataset (SRD).</p>
-<p>The data package for this course contains a subset of the prediction grid for Chile. The file <code>data/ebird_prediction-grid_chile_2021.parquet</code> contains the environmental variables for each point on the grid and the file <code>data/prediction-grid_template.tif</code> is a 3km by 3km raster template where each each cell center is a point on the prediction grid. Let’s start by examining the environmental variables.</p>
+<p>The ultimate goal of modeling the occurrence or abundance of a species is frequently to produce a map showing the distribution of that species in space. To do so, we need to know the values of our predictor variables over the region that we intend to make predictions. To make this possible, the ERD is distributed with a <strong>prediction grid</strong>: a regular grid of points covering the entire globe spaced 3km apart for which all the environmental variables have been calculated for the year 2022.</p>
+<p>The data package for this course contains an example subset of the prediction grid. The file <code>data/prediction-grid_year_AU-QLD.parquet</code> contains the environmental variables for each point on the grid and the file <code>data/prediction-grid_template.tif</code> is a 3km by 3km raster template where each each cell center is a point on the prediction grid. Let’s start by examining the environmental variables.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>prediction_grid <span class="ot">&lt;-</span> <span class="fu">read_parquet</span>(<span class="st">"data/ebird_prediction-grid_chile_2021.parquet"</span>)</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(prediction_grid)</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Rows: 151,313</span></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: 83</span></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ srd_id                           &lt;int&gt; 54237418, 54237419, 54237420, 5423742…</span></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ longitude                        &lt;dbl&gt; -69.4, -69.4, -69.4, -69.3, -69.3, -6…</span></span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ latitude                         &lt;dbl&gt; -17, -17, -17, -17, -17, -17, -17, -1…</span></span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_1km_median              &lt;dbl&gt; -0.058229, -0.044364, -0.047317, -0.0…</span></span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_1km_sd                  &lt;dbl&gt; 0.2181, 0.1155, 0.2455, 0.1704, 0.266…</span></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_90m_median              &lt;dbl&gt; 0.06977, 0.03524, 0.00753, -0.02868, …</span></span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_90m_sd                  &lt;dbl&gt; 0.1154, 0.1539, 0.1562, 0.0899, 0.112…</span></span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_1km_median             &lt;dbl&gt; 0.01759, -0.00286, 0.02578, 0.08451, …</span></span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_1km_sd                 &lt;dbl&gt; 0.236, 0.251, 0.125, 0.278, 0.253, 0.…</span></span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_90m_median             &lt;dbl&gt; -0.00962, -0.01659, 0.00475, -0.01966…</span></span>
-<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_90m_sd                 &lt;dbl&gt; 0.1396, 0.1397, 0.0844, 0.1282, 0.136…</span></span>
-<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elev_30m_median                  &lt;dbl&gt; 4271, 4073, 4051, 4008, 4167, 4116, 4…</span></span>
-<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elev_30m_sd                      &lt;dbl&gt; 76.5, 65.6, 104.6, 73.8, 82.4, 34.0, …</span></span>
-<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elev_250m_median                 &lt;dbl&gt; 4269, 4083, 4063, 4018, 4181, 4131, 4…</span></span>
-<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elev_250m_sd                     &lt;dbl&gt; 72.6, 58.7, 98.3, 73.8, 71.4, 30.8, 3…</span></span>
-<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ island                           &lt;dbl&gt; 30002, 30002, 30002, 30002, 30002, 30…</span></span>
-<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_fs_c1_1500_ed             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_fs_c1_1500_pland          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_fs_c2_1500_ed             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_fs_c2_1500_pland          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_fs_c3_1500_ed             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_fs_c3_1500_pland          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gp_rtp_1                         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gp_rtp_2                         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gp_rtp_3                         &lt;dbl&gt; 0.0, 505.6, 189.7, 132.4, 0.0, 219.8,…</span></span>
-<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gp_rtp_4                         &lt;dbl&gt; 0.0, 0.0, 586.0, 321.2, 0.0, 678.3, 7…</span></span>
-<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gp_rtp_5                         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-32"><a href="#cb24-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ intertidal_fs_c1_1500_ed         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-33"><a href="#cb24-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ intertidal_fs_c1_1500_pland      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-34"><a href="#cb24-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ ntl_mean                         &lt;dbl&gt; 0.000, 0.000, 0.000, 0.000, 0.000, 0.…</span></span>
-<span id="cb24-35"><a href="#cb24-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ ntl_sd                           &lt;dbl&gt; 0.000, 0.000, 0.000, 0.000, 0.000, 0.…</span></span>
-<span id="cb24-36"><a href="#cb24-36" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c1_1500_ed      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-37"><a href="#cb24-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c1_1500_pland   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-38"><a href="#cb24-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c2_1500_ed      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-39"><a href="#cb24-39" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c2_1500_pland   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-40"><a href="#cb24-40" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c11_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-41"><a href="#cb24-41" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c11_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-42"><a href="#cb24-42" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c12_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-43"><a href="#cb24-43" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c12_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-44"><a href="#cb24-44" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c13_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-45"><a href="#cb24-45" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c13_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-46"><a href="#cb24-46" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c14_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-47"><a href="#cb24-47" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c14_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-48"><a href="#cb24-48" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c15_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-49"><a href="#cb24-49" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c15_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-50"><a href="#cb24-50" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c16_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-51"><a href="#cb24-51" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c16_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-52"><a href="#cb24-52" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c21_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-53"><a href="#cb24-53" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c21_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-54"><a href="#cb24-54" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c22_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-55"><a href="#cb24-55" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c22_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-56"><a href="#cb24-56" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c31_1500_ed     &lt;dbl&gt; 7.71, 11.99, 8.39, 13.88, 5.40, 7.19,…</span></span>
-<span id="cb24-57"><a href="#cb24-57" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c31_1500_pland  &lt;dbl&gt; 42.86, 66.67, 80.56, 38.10, 16.67, 78…</span></span>
-<span id="cb24-58"><a href="#cb24-58" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c32_1500_ed     &lt;dbl&gt; 9.76, 9.59, 6.00, 7.19, 11.39, 0.00, …</span></span>
-<span id="cb24-59"><a href="#cb24-59" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c32_1500_pland  &lt;dbl&gt; 26.19, 16.67, 13.89, 14.29, 33.33, 0.…</span></span>
-<span id="cb24-60"><a href="#cb24-60" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c41_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-61"><a href="#cb24-61" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c41_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-62"><a href="#cb24-62" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c42_1500_ed     &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 2.57, 4…</span></span>
-<span id="cb24-63"><a href="#cb24-63" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c42_1500_pland  &lt;dbl&gt; 0.00, 0.00, 0.00, 0.00, 0.00, 7.14, 2…</span></span>
-<span id="cb24-64"><a href="#cb24-64" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c43_1500_ed     &lt;dbl&gt; 7.19, 4.80, 3.60, 16.96, 14.39, 4.63,…</span></span>
-<span id="cb24-65"><a href="#cb24-65" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c43_1500_pland  &lt;dbl&gt; 30.95, 16.67, 5.56, 47.62, 50.00, 14.…</span></span>
-<span id="cb24-66"><a href="#cb24-66" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c255_1500_ed    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-67"><a href="#cb24-67" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_fs_c255_1500_pland &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-68"><a href="#cb24-68" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_fs_c25_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-69"><a href="#cb24-69" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_fs_c25_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-70"><a href="#cb24-70" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_fs_c35_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-71"><a href="#cb24-71" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_fs_c35_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-72"><a href="#cb24-72" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_fs_c36_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-73"><a href="#cb24-73" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_fs_c36_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-74"><a href="#cb24-74" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_fs_c27_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-75"><a href="#cb24-75" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_fs_c27_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-76"><a href="#cb24-76" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_fs_c50_1500_ed     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-77"><a href="#cb24-77" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_fs_c50_1500_pland  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-78"><a href="#cb24-78" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_fs_c51_1500_ed     &lt;dbl&gt; 1.54, 0.00, 0.00, 0.00, 1.80, 1.54, 1…</span></span>
-<span id="cb24-79"><a href="#cb24-79" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_fs_c51_1500_pland  &lt;dbl&gt; 2.38, 0.00, 0.00, 0.00, 2.78, 2.38, 2…</span></span>
-<span id="cb24-80"><a href="#cb24-80" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mod44w_oic_fs_c1_1500_ed         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-81"><a href="#cb24-81" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mod44w_oic_fs_c1_1500_pland      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-82"><a href="#cb24-82" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mod44w_oic_fs_c2_1500_ed         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-83"><a href="#cb24-83" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mod44w_oic_fs_c2_1500_pland      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-84"><a href="#cb24-84" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mod44w_oic_fs_c3_1500_ed         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-85"><a href="#cb24-85" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mod44w_oic_fs_c3_1500_pland      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-86"><a href="#cb24-86" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_fs_c9_1500_ed      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span>
-<span id="cb24-87"><a href="#cb24-87" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_fs_c9_1500_pland   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>prediction_grid <span class="ot">&lt;-</span> <span class="fu">read_parquet</span>(<span class="st">"data/prediction-grid_year_AU-QLD_2022.parquet"</span>)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(prediction_grid)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Rows: 230,422</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: 123</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ srd_id                             &lt;int&gt; 50299954, 50299955, 50299956, 50299…</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ longitude                          &lt;dbl&gt; 142, 142, 142, 142, 142, 142, 142, …</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ latitude                           &lt;dbl&gt; -9.19, -9.19, -9.19, -9.19, -9.19, …</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_1km_median                &lt;dbl&gt; -8.11e-03, -9.89e-03, 4.66e-02, 3.1…</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_1km_sd                    &lt;dbl&gt; 0.0875, 0.1937, 0.1585, 0.1373, 0.1…</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_90m_median                &lt;dbl&gt; 6.06e-04, 5.23e-05, 1.53e-04, -2.61…</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ eastness_90m_sd                    &lt;dbl&gt; 0.00474, 0.00407, 0.00657, 0.01536,…</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_1km_median               &lt;dbl&gt; -6.06e-02, 1.53e-01, 7.75e-02, -5.6…</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_1km_sd                   &lt;dbl&gt; 0.3412, 0.1793, 0.2380, 0.1677, 0.3…</span></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_90m_median               &lt;dbl&gt; -0.001320, -0.000886, 0.000655, 0.0…</span></span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ northness_90m_sd                   &lt;dbl&gt; 0.01242, 0.01134, 0.01204, 0.01721,…</span></span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elevation_250m_median              &lt;dbl&gt; 14.513, 13.969, 14.086, 0.174, 13.9…</span></span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elevation_250m_sd                  &lt;dbl&gt; 2.67, 3.22, 3.96, 7.31, 5.04, 5.78,…</span></span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elevation_30m_median               &lt;dbl&gt; 14.1, 13.3, 12.2, 13.1, 14.4, 17.5,…</span></span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ elevation_30m_sd                   &lt;dbl&gt; 5.06, 5.09, 4.50, 4.40, 5.30, 5.22,…</span></span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ island                             &lt;dbl&gt; 392, 392, 392, 392, 1067, 1067, 106…</span></span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_c1_ed                       &lt;dbl&gt; 2.26, 2.26, 5.95, 5.95, 9.26, 14.02…</span></span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_c1_pland                    &lt;dbl&gt; 2.20, 1.21, 11.17, 81.91, 42.20, 37…</span></span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_c2_ed                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_c2_pland                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_c3_ed                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ astwbd_c3_pland                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gsw_c2_pland                       &lt;dbl&gt; 0.823, 6.787, 8.823, 7.259, 1.704, …</span></span>
+<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gsw_c2_ed                          &lt;dbl&gt; 5.27, 18.01, 16.18, 11.68, 14.06, 2…</span></span>
+<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gsw_c3_pland                       &lt;dbl&gt; 1.8037, 0.5269, 11.5355, 81.5255, 3…</span></span>
+<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ gsw_c3_ed                          &lt;dbl&gt; 2.228, 1.398, 5.633, 5.833, 9.295, …</span></span>
+<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ intertidal_c1_ed                   &lt;dbl&gt; 2.24, 2.16, 6.65, 16.81, 13.13, 7.9…</span></span>
+<span id="cb23-32"><a href="#cb23-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ intertidal_c1_pland                &lt;dbl&gt; 2.37, 1.06, 12.20, 19.01, 10.81, 18…</span></span>
+<span id="cb23-33"><a href="#cb23-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ ntl_mean                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-34"><a href="#cb23-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ ntl_sd                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-35"><a href="#cb23-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ road_density_c1                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-36"><a href="#cb23-36" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ road_density_c2                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-37"><a href="#cb23-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ road_density_c3                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-38"><a href="#cb23-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ road_density_c4                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-39"><a href="#cb23-39" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ road_density_c5                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-40"><a href="#cb23-40" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c1_ed                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-41"><a href="#cb23-41" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c1_pland             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-42"><a href="#cb23-42" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c2_ed                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-43"><a href="#cb23-43" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c2_pland             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-44"><a href="#cb23-44" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c11_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-45"><a href="#cb23-45" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c11_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-46"><a href="#cb23-46" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c12_ed               &lt;dbl&gt; 7.338, 10.131, 8.094, 3.083, 8.544,…</span></span>
+<span id="cb23-47"><a href="#cb23-47" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c12_pland            &lt;dbl&gt; 17.695, 36.156, 44.618, 4.919, 26.6…</span></span>
+<span id="cb23-48"><a href="#cb23-48" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c13_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-49"><a href="#cb23-49" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c13_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-50"><a href="#cb23-50" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c14_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-51"><a href="#cb23-51" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c14_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-52"><a href="#cb23-52" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c15_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-53"><a href="#cb23-53" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c15_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-54"><a href="#cb23-54" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c16_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-55"><a href="#cb23-55" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c16_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-56"><a href="#cb23-56" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c21_ed               &lt;dbl&gt; 12.52, 13.21, 16.19, 7.49, 13.94, 1…</span></span>
+<span id="cb23-57"><a href="#cb23-57" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c21_pland            &lt;dbl&gt; 68.50, 28.15, 40.24, 19.06, 33.23, …</span></span>
+<span id="cb23-58"><a href="#cb23-58" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c22_ed               &lt;dbl&gt; 2.16, 7.05, 3.15, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb23-59"><a href="#cb23-59" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c22_pland            &lt;dbl&gt; 3.10, 18.50, 6.22, 0.00, 0.00, 0.00…</span></span>
+<span id="cb23-60"><a href="#cb23-60" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c31_ed               &lt;dbl&gt; 4.75, 6.61, 2.70, 0.00, 0.00, 0.00,…</span></span>
+<span id="cb23-61"><a href="#cb23-61" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c31_pland            &lt;dbl&gt; 10.64, 17.13, 1.36, 0.00, 0.00, 0.0…</span></span>
+<span id="cb23-62"><a href="#cb23-62" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c32_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-63"><a href="#cb23-63" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c32_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-64"><a href="#cb23-64" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c41_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-65"><a href="#cb23-65" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c41_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-66"><a href="#cb23-66" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c42_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-67"><a href="#cb23-67" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c42_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-68"><a href="#cb23-68" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c43_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-69"><a href="#cb23-69" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c43_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-70"><a href="#cb23-70" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c255_ed              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-71"><a href="#cb23-71" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs1_c255_pland           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-72"><a href="#cb23-72" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_c25_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-73"><a href="#cb23-73" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_c25_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-74"><a href="#cb23-74" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_c35_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-75"><a href="#cb23-75" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_c35_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-76"><a href="#cb23-76" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_c36_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-77"><a href="#cb23-77" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs2_c36_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-78"><a href="#cb23-78" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_c27_ed               &lt;dbl&gt; 3.89, 4.85, 7.19, 4.40, 7.19, 8.37,…</span></span>
+<span id="cb23-79"><a href="#cb23-79" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_c27_pland            &lt;dbl&gt; 45.60, 52.36, 90.17, 23.97, 59.84, …</span></span>
+<span id="cb23-80"><a href="#cb23-80" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_c50_ed               &lt;dbl&gt; 1.295, 6.607, 0.899, 0.000, 0.000, …</span></span>
+<span id="cb23-81"><a href="#cb23-81" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_c50_pland            &lt;dbl&gt; 2.573, 13.835, 0.626, 0.000, 0.000,…</span></span>
+<span id="cb23-82"><a href="#cb23-82" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_c51_ed               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-83"><a href="#cb23-83" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ mcd12q1_lccs3_c51_pland            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-84"><a href="#cb23-84" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ has_shoreline                      &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE,…</span></span>
+<span id="cb23-85"><a href="#cb23-85" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_waveheight_mean          &lt;dbl&gt; 0.380, 0.380, 0.380, 0.380, 0.380, …</span></span>
+<span id="cb23-86"><a href="#cb23-86" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_waveheight_sd            &lt;dbl&gt; 0.00000, 0.00000, 0.00000, 0.00000,…</span></span>
+<span id="cb23-87"><a href="#cb23-87" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_tidal_range_mean         &lt;dbl&gt; 4.24, 4.13, 4.09, 4.06, 4.02, 3.93,…</span></span>
+<span id="cb23-88"><a href="#cb23-88" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_tidal_range_sd           &lt;dbl&gt; 0.0000, 0.0462, 0.0191, 0.0000, 0.0…</span></span>
+<span id="cb23-89"><a href="#cb23-89" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_chlorophyll_mean         &lt;dbl&gt; 3.70, 3.76, 3.76, 3.84, 3.83, 3.79,…</span></span>
+<span id="cb23-90"><a href="#cb23-90" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_chlorophyll_sd           &lt;dbl&gt; 0.037448, 0.000638, 0.045479, 0.044…</span></span>
+<span id="cb23-91"><a href="#cb23-91" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_turbidity_mean           &lt;dbl&gt; 0.1450, 0.1450, 0.1884, 0.2029, 0.0…</span></span>
+<span id="cb23-92"><a href="#cb23-92" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_turbidity_sd             &lt;dbl&gt; 0.000000, 0.000000, 0.028934, 0.000…</span></span>
+<span id="cb23-93"><a href="#cb23-93" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_sinuosity_mean           &lt;dbl&gt; 1.04, 1.04, 1.10, 1.10, 1.32, 1.34,…</span></span>
+<span id="cb23-94"><a href="#cb23-94" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_sinuosity_sd             &lt;dbl&gt; 0.000, 0.000, 0.000, 0.000, 0.405, …</span></span>
+<span id="cb23-95"><a href="#cb23-95" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_slope_mean               &lt;dbl&gt; 120.0, 13.3, 85.0, 56.0, 89.3, 74.3…</span></span>
+<span id="cb23-96"><a href="#cb23-96" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_slope_sd                 &lt;dbl&gt; 50.22, 5.74, 48.43, 10.09, 61.16, 4…</span></span>
+<span id="cb23-97"><a href="#cb23-97" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_outflow_density_mean     &lt;dbl&gt; 1.06e-04, 4.18e-05, 4.18e-05, 4.18e…</span></span>
+<span id="cb23-98"><a href="#cb23-98" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_outflow_density_sd       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-99"><a href="#cb23-99" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_erodibility_n            &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,…</span></span>
+<span id="cb23-100"><a href="#cb23-100" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_erodibility_c1_density   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-101"><a href="#cb23-101" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_erodibility_c2_density   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-102"><a href="#cb23-102" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_erodibility_c3_density   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-103"><a href="#cb23-103" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_erodibility_c4_density   &lt;dbl&gt; 181, 149, 367, 366, 677, 1088, 1240…</span></span>
+<span id="cb23-104"><a href="#cb23-104" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_n           &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,…</span></span>
+<span id="cb23-105"><a href="#cb23-105" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c1_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-106"><a href="#cb23-106" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c2_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-107"><a href="#cb23-107" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c3_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-108"><a href="#cb23-108" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c4_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-109"><a href="#cb23-109" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c5_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-110"><a href="#cb23-110" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c6_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-111"><a href="#cb23-111" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c7_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-112"><a href="#cb23-112" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c8_density  &lt;dbl&gt; 181, 149, 367, 366, 677, 1088, 1240…</span></span>
+<span id="cb23-113"><a href="#cb23-113" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c9_density  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-114"><a href="#cb23-114" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c10_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-115"><a href="#cb23-115" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c11_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-116"><a href="#cb23-116" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c12_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-117"><a href="#cb23-117" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c13_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-118"><a href="#cb23-118" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c14_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-119"><a href="#cb23-119" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c15_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-120"><a href="#cb23-120" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c16_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-121"><a href="#cb23-121" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c17_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-122"><a href="#cb23-122" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c18_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-123"><a href="#cb23-123" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c19_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-124"><a href="#cb23-124" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c20_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-125"><a href="#cb23-125" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c21_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-126"><a href="#cb23-126" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c22_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span>
+<span id="cb23-127"><a href="#cb23-127" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ shoreline_emu_physical_c23_density &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>These variables should be mostly familiar from the ERD, except for <code>srd_id</code> which is a unique identifier for each point on the grid. Next let’s load the raster template using the <code>terra</code> package.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>raster_template <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="st">"data/prediction-grid_template.tif"</span>)</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>raster_template</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; class       : SpatRaster </span></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; dimensions  : 5630, 13511, 1  (nrow, ncol, nlyr)</span></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; resolution  : 2963, 2963  (x, y)</span></span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; extent      : -2e+07, 2e+07, -6673060, 1e+07  (xmin, xmax, ymin, ymax)</span></span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; coord. ref. : +proj=sinu +lon_0=0 +x_0=0 +y_0=0 +R=6371007.181 +units=m +no_defs </span></span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; source      : prediction-grid_template.tif </span></span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; name        : mask </span></span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; min value   :    1 </span></span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; max value   :    1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>raster_template <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="st">"data/prediction-grid_template.tif"</span>)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>raster_template</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; class       : SpatRaster </span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; dimensions  : 5630, 13511, 1  (nrow, ncol, nlyr)</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; resolution  : 2963, 2963  (x, y)</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; extent      : -2e+07, 2e+07, -6673060, 1e+07  (xmin, xmax, ymin, ymax)</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; coord. ref. : +proj=sinu +lon_0=0 +x_0=0 +y_0=0 +R=6371007.181 +units=m +no_defs </span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; source      : prediction-grid_template.tif </span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; name        : mask </span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; min value   :    1 </span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; max value   :    1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>This is a global 2.96km by 2.96km square grid in an equal area projection. We can use the <code>terra</code> function <code>rasterize</code> to insert values from the prediction grid into the template for mapping. For example, let’s make a raster dataset of percent cover of evergreen broadleaf forest (<code>mcd12q1_lccs1_fs_c12_1500_pland</code>).</p>
+<p>This is a global 2.96km by 2.96km square grid in an equal area projection. We can use the <code>terra</code> function <code>rasterize</code> to insert values from the prediction grid into the template for mapping. For example, let’s make a raster dataset of percent cover of evergreen broadleaf forest (<code>mcd12q1_lccs1_c12_pland</code>).</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>forest_cover <span class="ot">&lt;-</span> prediction_grid <span class="sc">%&gt;%</span> </span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># convert to spatial object using sf</span></span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"longitude"</span>, <span class="st">"latitude"</span>), <span class="at">crs =</span> <span class="dv">4326</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># transform to the coordinate reference system of the raster</span></span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="fu">crs</span>(raster_template)) <span class="sc">%&gt;%</span> </span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># rasterize the points using the raster template</span></span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rasterize</span>(raster_template, <span class="at">field =</span> <span class="st">"mcd12q1_lccs1_fs_c12_1500_pland"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>forest_cover <span class="ot">&lt;-</span> prediction_grid <span class="sc">%&gt;%</span> </span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># convert to spatial object using sf</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"longitude"</span>, <span class="st">"latitude"</span>), <span class="at">crs =</span> <span class="dv">4326</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># transform to the coordinate reference system of the raster</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="fu">crs</span>(raster_template)) <span class="sc">%&gt;%</span> </span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># rasterize the points using the raster template</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rasterize</span>(raster_template, <span class="at">field =</span> <span class="st">"mcd12q1_lccs1_c12_pland"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>Now we can make a simple map of evergreen broadleaf forest for Chile. Not that the raster template is global, but we can use <code>trim()</code> to remove all areas that have missing values for a map of Chile only.</p>
+<p>Now we can make a simple map of evergreen broadleaf forest. Note that the raster template is global, but we can use <code>trim()</code> to remove all areas that have missing values.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">trim</span>(forest_cover), <span class="at">axes =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">trim</span>(forest_cover), <span class="at">axes =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1156,18 +1240,18 @@ Solution
 </section>
 <section id="sec-ebird-bias" class="level2" data-number="3.3">
 <h2 data-number="3.3" class="anchored" data-anchor-id="sec-ebird-bias"><span class="header-section-number">3.3</span> Spatial and temporal bias</h2>
-<p>Despite the strengths of eBird data, species observations collected through citizen science projects exhibit both spatial and temporal bias requiring special care when using them for rigorous analyses. <strong>Spatial bias</strong> occurs because eBird participants are more likely to be collect data near their homes, in easily accessible areas such as roadsides, or in areas known to be good for birding. Looking at the above map of Chucao Tapaculo observations it’s clear that the eBird checklists are clustered around cities and roads. <strong>Temporal bias</strong> occurs because participants preferentially collect data when they are available, such as weekends, and at times of year when they expect to observe more birds, notably during the breeding season. We can plot the distribution of checklists over the days of the year to see this bias:</p>
+<p>Despite the strengths of eBird data, species observations collected through citizen science projects exhibit both spatial and temporal bias requiring special care when using them for rigorous analyses. <strong>Spatial bias</strong> occurs because eBird participants are more likely to be collect data near their homes, in easily accessible areas such as roadsides, or in areas known to be good for birding. Looking at the above map of bird observations it’s clear that the eBird checklists are clustered around cities and roads. <strong>Temporal bias</strong> occurs because participants preferentially collect data when they are available, such as weekends, and at times of year when they expect to observe more birds, notably during the breeding season. We can plot the distribution of checklists over the days of the year to see this bias:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>checklist_per_day <span class="ot">&lt;-</span> checklists <span class="sc">%&gt;%</span> </span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(day_of_year <span class="sc">&lt;</span> <span class="dv">366</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(day_of_year)</span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(checklist_per_day) <span class="sc">+</span></span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> day_of_year, <span class="at">y =</span> n) <span class="sc">+</span></span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
-<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> scales<span class="sc">::</span>comma) <span class="sc">+</span></span>
-<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Day of Year"</span>, <span class="at">y =</span> <span class="st">"# checklists"</span>,</span>
-<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Daily eBird checklists submission"</span>) <span class="sc">+</span></span>
-<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_gray</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>checklist_per_day <span class="ot">&lt;-</span> checklists <span class="sc">%&gt;%</span> </span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(day_of_year <span class="sc">&lt;</span> <span class="dv">366</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(day_of_year)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(checklist_per_day) <span class="sc">+</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> day_of_year, <span class="at">y =</span> n) <span class="sc">+</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> scales<span class="sc">::</span>comma) <span class="sc">+</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Day of Year"</span>, <span class="at">y =</span> <span class="st">"# checklists"</span>,</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Daily eBird checklists submission"</span>) <span class="sc">+</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1176,11 +1260,11 @@ Solution
 </div>
 </div>
 </div>
-<p>Three is a clear seasonal pattern to the number of eBird checklists submitted (fewer checklists in the winter) as well as daily and weekly variation within seasons. In addition, there are two huge spikes in checklists submissions, one in May and the other in October, what do you think could be causing these sudden increases?</p>
-<p>Finally, for most species, there is strong <strong>class imbalance</strong> in the data, meaning there are usually many more non-detections than detections. As a results, a distribution model predicting that the species is absent everywhere will have high accuracy, but no ecological value. For example, the prevalence rate of Chucao Tapaculo in Chile is only 5%.</p>
+<p>Three is a clear seasonal pattern to the number of eBird checklists submitted (fewer checklists in March) as well as daily and weekly variation within seasons. In addition, there are spikes in checklists submissions. What do you think could be causing these sudden increases?</p>
+<p>Finally, for most species, there is strong <strong>class imbalance</strong> in the data, meaning there are usually many more non-detections than detections. As a results, a distribution model predicting that the species is absent everywhere will have high accuracy, but no ecological value. For example, the prevalence rate of this species is only 3%.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(chutap1_zf<span class="sc">$</span>obs_detected)</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.0518</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(bird_zf<span class="sc">$</span>obs_detected)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.0275</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>To address these three issues (spatial bias, temporal bias, and class imbalance) we recommend subsampling the data using a technique called <strong>case controlled grid sampling</strong>. We overlay an equal area 3km by 3km grid over the checklists, then sample one detection and one non-detection from each grid cell for each week of each year. Let’s look at a simple example of how spatial grid sampling works.”</p>
 <div class="quarto-figure quarto-figure-center">
@@ -1213,25 +1297,24 @@ Solution
 <figcaption class="figure-caption">5. Recombine the detections and non-detections. The observations are much more evenly distributed in space and the prevalence of detections has increased from 2% to 20%.</figcaption>
 </figure>
 </div>
-<p>The function <code>grid_sample_stratified()</code> from the <code>ebirdst</code> package is specifically designed to perform case controlled grid sampling on eBird data. For example, let’s apply this technique to the Chucao Tapaculo observations.</p>
+<p>The function <code>grid_sample_stratified()</code> from the <code>ebirdst</code> package is specifically designed to perform case controlled grid sampling on eBird data. For example, let’s apply this technique to the bird observations.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># perform case controlled grid sampling</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>chutap1_sampled <span class="ot">&lt;-</span> <span class="fu">grid_sample_stratified</span>(chutap1_zf, </span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>                                          <span class="at">obs_column =</span> <span class="st">"obs_detected"</span>)</span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="co"># how many checklists were removed?</span></span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(chutap1_zf)</span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 186906</span></span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(chutap1_sampled)</span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 77421</span></span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a><span class="co"># how has prevalence changed</span></span>
-<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(chutap1_zf<span class="sc">$</span>obs_detected)</span>
-<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.0518</span></span>
-<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(chutap1_sampled<span class="sc">$</span>obs_detected)</span>
-<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.0729</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># perform case controlled grid sampling</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>bird_sampled <span class="ot">&lt;-</span> <span class="fu">grid_sample_stratified</span>(bird_zf, <span class="at">obs_column =</span> <span class="st">"obs_detected"</span>)</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co"># how many checklists were removed?</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(bird_zf)</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 90620</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(bird_sampled)</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 33227</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="co"># how has prevalence changed</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(bird_zf<span class="sc">$</span>obs_detected)</span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.0275</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(bird_sampled<span class="sc">$</span>obs_detected)</span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.0433</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>So, after sampling, we’re left with 41% of the observations we started with, but the spatial and temporal bias has been significantly reduced.</p>
+<p>So, after sampling, we’re left with 37% of the observations we started with, but the spatial and temporal bias has been significantly reduced.</p>
 <p>We now have the data and tools necessary to model relative abundance using eBird data, which will be the focus of <span class="quarto-unresolved-ref">?sec-abundance</span>.</p>
 
 
