@@ -75,12 +75,14 @@ checklists <- checklists %>%
     num_observers <= 10)
 ```
 
-For the final filtering step, we'll use spatial boundaries from Australia's bioregions to subset the data to the region around Brisbane.
+For the final filtering step, we'll use spatial boundaries from Australia's bioregions to subset the data to the region around Brisbane and the one to the west.
 
 ```{r}
 #| label: abundance-data-region
 study_region <- read_sf("data/ibra61_reg.gpkg") %>%
-  filter(REG_CODE == "SEQ" & STATE == "QLD") %>%
+  filter((REG_CODE %in% c("SEQ", "BBS")) & STATE == "QLD") %>%
+  st_union() %>%
+  st_as_sf() %>%
   st_transform(crs = 4326)
 
 # subset to regions of interest
@@ -155,9 +157,11 @@ checklists_train <- checklists_sampled %>%
          elevation_30m_median, elevation_30m_sd,
          intertidal_c1_ed, intertidal_c1_pland,
          ntl_mean, ntl_sd,
+         evi_median, evi_sd,
          starts_with("astwbd"),
          starts_with("road_density"),
-         starts_with("mcd12q1"))
+         starts_with("mcd12q1"),
+         starts_with("gsw"))
 ```
 
 ### Step 1: Encounter rate {#sec-abundance-hurdle-er}
@@ -405,7 +409,7 @@ ggplot(head(pi, 10)) +
         panel.grid.major.x = element_line(colour = "#cccccc", linewidth = 0.5))
 ```
 
-The most important predictors of detection/non-detection are often effort variables. Indeed, that's the case here: checklist duration, distance traveled, and time of day (`solar_noon_diff`) all appear in the top 5 predictors. This is not surprising: going out at the right time of day and expending more effort searching will lead to a higher probability of detecting Wood Thrush. Focusing on the habitat variables, both elevation and slope variables have high importance, and the top habitat variables are from evergreen broadleaf forest and dense herbaceous. Note however, that high importance doesn't tell us the direction of the relationship with detection, for that we'll have to look at partial dependence plots.
+The most important predictors of detection/non-detection are often effort variables. Indeed, that's the case here: checklist duration, distance traveled, and time of day (`solar_noon_diff`) all appear in the top 5 predictors. This is not surprising: going out at the right time of day and expending more effort searching will lead to a higher probability of detecting Wood Thrush. Focusing on the habitat variables, both elevation and slope variables have high importance, and the top habitat variables are from evergreen broadleaf forest and open forest. Note however, that high importance doesn't tell us the direction of the relationship with detection, for that we'll have to look at partial dependence plots.
 
 ::: {.callout-caution icon=false}
 ## Exercise
@@ -522,7 +526,14 @@ Using the prediction grid described in @sec-ebird-pred, we can estimate relative
 
 ```{r}
 #| label: abundance-predict-read
-pred_grid_all <- read_parquet("data/prediction-grid_year_AU-QLD_2022.parquet")
+pred_grid_year <- read_parquet("data/prediction-grid_year_AU-QLD_2022.parquet")
+
+pred_grid_evi <- read_parquet("data/prediction-grid_week_AU-QLD_2022.parquet") %>%
+  filter(day_of_year == 347) %>%
+  select(srd_id, evi_median, evi_sd)
+
+pred_grid_all <- pred_grid_year %>%
+  left_join(pred_grid_evi, by = "srd_id")
 
 raster_template <- rast("data/prediction-grid_template.tif") %>% 
   # crop raster to study region
@@ -542,7 +553,7 @@ The prediction grid only includes values for the environmental variables, so to 
 To find the time of day with the highest detection probability, we can look for the peak of the partial dependence plot.
 
 ```{r}
-#| label:  abundance-predict-pd
+#| label:  abundance-predict-pd-snd
 # estimate a partial dependence plot for solar noon diff
 pd_time <- calculate_pd("solar_noon_diff",
                         model = er_model, 
@@ -553,36 +564,117 @@ pd_time <- calculate_pd("solar_noon_diff",
 ggplot(pd_time) +
   aes(x = solar_noon_diff, y = encounter_rate) +
   geom_line() +
+  geom_point() +
   scale_x_continuous(breaks = seq(-12, 13, by = 3)) +
   labs(x = "Difference from solar noon",
        y = "Encounter",
-       title = "Partial dependence")
+       title = "Partial dependence") +
+  theme_bw()
 ```
 
-Based on the above plot, it appears that about 5 hours before solar noon is the optimal time for observing the species. Let's add all the effort variables to the prediction grid.
+Based on the above plot, it appears that about 5 hours before solar noon is the optimal time for observing the species. We could stop here and set our prediction values to fixed units, but there is significant value in defining these prediction units differently for our estimates of range boundary. Think of this as two different searches. First, a search goes out for as long (time and distance) as it takes to detect the species in all places (maximized detection). Then a separate search goes out for a standardized amount of duration and distance. In this way, we get the best range boundary possible combined with standardized estimates of encounter rate, count, and relative abundance within that range boundary. To maximize the effort units for predicting the range boundary, we'll need to look at the peaks of the partials for these predictors as well.
+
+```{r}
+#| label:  abundance-predict-pd-hrs
+# estimate a partial dependence plot for effort_hrs
+pd_hrs <- calculate_pd("effort_hrs",
+                        model = er_model, 
+                        data = checklists_train) %>% 
+  select(effort_hrs = x, encounter_rate)
+
+# partial dependence plot
+ggplot(pd_hrs) +
+  aes(x = effort_hrs, y = encounter_rate) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = seq(0, 6, by = 1)) +
+  labs(x = "Effort Hours",
+       y = "Encounter",
+       title = "Partial dependence") +
+  theme_bw()
+```
+
+Here we see a slope that doesn't stop asymptoting until we get to 6 hours. However, that value of six hours is the last quantile and represents potential extrapolation territory, so we'll chose the second to last quantile (which isn't that different) at 3.5 hours.
+
+```{r}
+#| label:  abundance-predict-pd-distance-km
+# estimate a partial dependence plot for effort_distance_km
+pd_km <- calculate_pd("effort_distance_km",
+                        model = er_model, 
+                        data = checklists_train) %>% 
+  select(effort_distance_km = x, encounter_rate)
+
+# partial dependence plot
+ggplot(pd_km) +
+  aes(x = effort_distance_km, y = encounter_rate) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = seq(0, 10, by = 1)) +
+  labs(x = "Effort Distance (km)",
+       y = "Encounter",
+       title = "Partial dependence") +
+  theme_bw()
+```
+
+Again, here the last quantile value is way out at 10 and could generate extrapolation, so we'll choose 5.5 km, the next quantile value. We also need to remember that we have `effort_speed_kmph` as a predictor in the model. Let's generate a partial for this, to see if 5.5 km / 3.5 hours produces a reasonable value.
+
+```{r}
+#| label:  abundance-predict-pd-rate
+# estimate a partial dependence plot for solar noon diff
+pd_km <- calculate_pd("effort_speed_kmph",
+                        model = er_model, 
+                        data = checklists_train) %>% 
+  select(effort_speed_kmph = x, encounter_rate)
+
+# partial dependence plot
+ggplot(pd_km) +
+  aes(x = effort_speed_kmph, y = encounter_rate) +
+  geom_line() +
+  geom_point() +
+  geom_vline(xintercept = 5.5 / 3.5, col = "red") +
+  #scale_x_continuous(breaks = seq(0, 6, by = 1)) +
+  xlim(c(0, 5)) +
+  labs(x = "Effort Speed (km/h))",
+       y = "Encounter",
+       title = "Partial dependence") +
+  theme_bw()
+
+```
+
+This looks good. It's not the absolute peak of the rate partial, but it's pretty close, especially given the magnitude range of the encounter rate for this partial. Let's add all the effort variables to the prediction grid.
 
 ```{r}
 #| label: abundance-predict-effort
 pred_grid_eff <- pred_grid %>% 
   mutate(year = 2022,
          day_of_year = 349,
-         solar_noon_diff = -5.245,
+         solar_noon_diff = -5,
          is_stationary = 0,
-         effort_hrs = 1,
-         effort_distance_km = 2,
-         effort_speed_kmph = 2,
+         effort_hrs = 3,
+         effort_distance_km = 5,
+         effort_speed_kmph = 5/3,
          num_observers = 1)
 ```
 
-Now we can estimate calibrated encounter rate, count, and abundance for each point on the prediction grid. We also include a binary estimate of the range boundary.
+First, we'll estimate binary presence/absence of the range boundary with an encounter rate prediction using these maximized effort values. Then we'll reset the effort values the more standardized values of 1 hour, 2 km, and 2 kmph. These values are close to the means and medians of the data distribution. After we've reset these effort values, we'll estimate calibrated encounter rate, count, and abundance for each point on the prediction grid.
 
 ```{r}
 #| label: abundance-predict-predict
+
+# binary presence/absence
+pred_binary_er <- predict(er_model, data = pred_grid_eff, type = "response")
+pred_binary_er <- pred_binary_er$predictions[, 2]
+pred_binary <- as.integer(pred_binary_er > threshold)
+
+# set prediction values for effort back to standardized values
+pred_grid_eff$effort_hrs <- 1
+pred_grid_eff$effort_distance_km <- 2
+pred_grid_eff$effort_speed_kmph <- 2
+
 # encounter rate estimate
 pred_er <- predict(er_model, data = pred_grid_eff, type = "response")
 pred_er <- pred_er$predictions[, 2]
-# binary prediction
-pred_binary <- as.integer(pred_er > threshold)
+
 # apply calibration
 pred_er_cal <- predict(calibration_model, 
                        data.frame(pred = pred_er), 
