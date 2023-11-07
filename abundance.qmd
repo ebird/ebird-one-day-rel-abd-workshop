@@ -414,7 +414,7 @@ The most important predictors of detection/non-detection are often effort variab
 ::: {.callout-caution icon=false}
 ## Exercise
 
-Look up the predictor names in `ebirdst_predictors` to see what habitat types these variables correspond to. Based on your knowledge of the species, does it make sense that these habitat types are important? Go further and look up the descriptions in `ebirdst_predictor_datasets` to learn more about the predictor and see if there's a reference.
+Look up the predictor names in `ebirdst_predictors` to see what habitat types these variables correspond to. Based on your knowledge of the species, does it make sense that these habitat types are important? Go further and look up the descriptions in `ebirdst_predictor_descriptions` to learn more about the predictor and see if there's a reference.
 :::
 
 ::: {.callout-note icon=false collapse="true"}
@@ -428,7 +428,7 @@ filter(ebirdst_predictors,
                         "mcd12q1_lccs1_c31_pland")) %>% 
   select(predictor, label)
 
-glimpse(ebirdst_predictor_datasets)
+glimpse(ebirdst_predictor_descriptions)
 ```
 :::
 
