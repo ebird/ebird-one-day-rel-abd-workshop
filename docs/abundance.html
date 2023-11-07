@@ -659,7 +659,7 @@ Exercise
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Look up the predictor names in <code>ebirdst_predictors</code> to see what habitat types these variables correspond to. Based on your knowledge of the species, does it make sense that these habitat types are important?</p>
+<p>Look up the predictor names in <code>ebirdst_predictors</code> to see what habitat types these variables correspond to. Based on your knowledge of the species, does it make sense that these habitat types are important? Go further and look up the descriptions in <code>ebirdst_predictor_datasets</code> to learn more about the predictor and see if there’s a reference.</p>
 </div>
 </div>
 <div class="callout callout-style-default callout-note no-icon callout-titled">
@@ -674,17 +674,26 @@ Solution
 </div>
 <div id="callout-3" class="callout-3-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<!--TODO ebirdst_predictors is old-->
 <div class="cell" data-layout-align="center">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(ebirdst_predictors, </span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>       predictor <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"mcd12q1_lccs1_c12_pland"</span>,</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"ntl_mean"</span>,</span>
 <span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"mcd12q1_lccs1_c31_pland"</span>)) <span class="sc">%&gt;%</span> </span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(predictor, predictor_label)</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 1 × 2</span></span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   predictor predictor_label </span></span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;     &lt;chr&gt;           </span></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 ntl_mean  Nighttime Lights</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(predictor, label)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 2</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   predictor               label                                </span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                   &lt;chr&gt;                                </span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 ntl_mean                Nighttime Lights (Mean)              </span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2 mcd12q1_lccs1_c12_pland Evergreen Broadleaf Forests (% cover)</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3 mcd12q1_lccs1_c31_pland Unclassified (% cover)</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(ebirdst_predictor_datasets)</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Rows: 37</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: 4</span></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ dataset     &lt;chr&gt; "ebird", "ebird", "ebird", "ebird", "ebird", "ebird", "ebi…</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ predictor   &lt;chr&gt; "longitude", "latitude", "year", "day_of_year", "solar_noo…</span></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ description &lt;chr&gt; "Longitude assigned to checklist. Locations are assigned u…</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ reference   &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, "https://doi.org/1…</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1023,7 +1032,7 @@ Checkpoint
 <span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a><span class="co"># label the bottom, middle, and top value</span></span>
 <span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>lbls <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">min</span>(brks), <span class="fu">median</span>(brks), <span class="fu">max</span>(brks)), <span class="dv">2</span>)</span>
 <span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a><span class="co"># ebird status and trends color palette</span></span>
-<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>pal <span class="ot">&lt;-</span> <span class="fu">abundance_palette</span>(<span class="fu">length</span>(brks) <span class="sc">-</span> <span class="dv">1</span>)</span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>pal <span class="ot">&lt;-</span> <span class="fu">ebirdst_palettes</span>(<span class="at">n =</span> <span class="fu">length</span>(brks) <span class="sc">-</span> <span class="dv">1</span>, <span class="at">type =</span> <span class="st">"weekly"</span>)</span>
 <span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(r_plot, </span>
 <span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a>     <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"#e6e6e6"</span>, pal), <span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">0</span>, brks), </span>
 <span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a>     <span class="at">maxpixels =</span> <span class="fu">ncell</span>(r_plot),</span>

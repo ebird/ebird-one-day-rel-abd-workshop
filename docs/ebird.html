@@ -867,12 +867,12 @@ data/ebird_checklists_AU-QLD.parquet</code></pre>
 </div>
 <p>The land and water cover variables can be challenging to interpret based on their names alone (e.g.&nbsp;<code>mcd12q1_lccs1_fs_c12_1500_pland</code>); however, these names can be looked up in the <code>ebirdst_predictors</code> data frame from the <code>ebirdst</code> package. For example, let’s look up what <code>mcd12q1_lccs1_fs_c12_1500_pland</code> corresponds to.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(ebirdst_predictors, predictor <span class="sc">==</span> <span class="st">"mcd12q1_lccs1_fs_c12_1500_pland"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(predictor, predictor_label)</span>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(ebirdst_predictors, predictor <span class="sc">==</span> <span class="st">"mcd12q1_lccs1_c12_pland"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(predictor, label)</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 1 × 2</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   predictor                       predictor_label                  </span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                           &lt;chr&gt;                            </span></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 mcd12q1_lccs1_fs_c12_1500_pland Evergreen Broadleaf Forests PLAND</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   predictor               label                                </span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                   &lt;chr&gt;                                </span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 mcd12q1_lccs1_c12_pland Evergreen Broadleaf Forests (% cover)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -884,7 +884,7 @@ Checkpoint
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Take some time to explore the variables in the checklist dataset. Try looking up a variable in <code>ebirst_predictors</code>. Ask for help if you need clarification on the meaning of any of the variables.</p>
+<p>Take some time to explore the variables in the checklist dataset. Try looking up a variable in <code>ebirdst_predictors</code>. Ask for help if you need clarification on the meaning of any of the variables.</p>
 </div>
 </div>
 <p>Now let’s look at the observation dataset.</p>
@@ -1313,13 +1313,13 @@ Solution
 <span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(bird_zf)</span>
 <span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 90620</span></span>
 <span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(bird_sampled)</span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 33105</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 33147</span></span>
 <span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="co"># how has prevalence changed</span></span>
 <span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(bird_zf<span class="sc">$</span>obs_detected)</span>
 <span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.0275</span></span>
 <span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(bird_sampled<span class="sc">$</span>obs_detected)</span>
-<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.0434</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.0439</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>So, after sampling, we’re left with 37% of the observations we started with, but the spatial and temporal bias has been significantly reduced.</p>
 <p>We now have the data and tools necessary to model relative abundance using eBird data, which will be the focus of <a href="abundance.html">Lesson&nbsp;<span>2</span></a>.</p>

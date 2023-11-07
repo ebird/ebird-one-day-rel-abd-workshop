@@ -295,14 +295,14 @@ The land and water cover variables can be challenging to interpret based on thei
 
 ```{r}
 #| label: ebird-erd-predlookup
-filter(ebirdst_predictors, predictor == "mcd12q1_lccs1_fs_c12_1500_pland") %>% 
-  select(predictor, predictor_label)
+filter(ebirdst_predictors, predictor == "mcd12q1_lccs1_c12_pland") %>% 
+  select(predictor, label)
 ```
 
 ::: callout-important
 ## Checkpoint
 
-Take some time to explore the variables in the checklist dataset. Try looking up a variable in `ebirst_predictors`. Ask for help if you need clarification on the meaning of any of the variables.
+Take some time to explore the variables in the checklist dataset. Try looking up a variable in `ebirdst_predictors`. Ask for help if you need clarification on the meaning of any of the variables.
 :::
 
 Now let's look at the observation dataset.

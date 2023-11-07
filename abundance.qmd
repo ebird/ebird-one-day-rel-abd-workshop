@@ -414,13 +414,11 @@ The most important predictors of detection/non-detection are often effort variab
 ::: {.callout-caution icon=false}
 ## Exercise
 
-Look up the predictor names in `ebirdst_predictors` to see what habitat types these variables correspond to. Based on your knowledge of the species, does it make sense that these habitat types are important?
+Look up the predictor names in `ebirdst_predictors` to see what habitat types these variables correspond to. Based on your knowledge of the species, does it make sense that these habitat types are important? Go further and look up the descriptions in `ebirdst_predictor_datasets` to learn more about the predictor and see if there's a reference.
 :::
 
 ::: {.callout-note icon=false collapse="true"}
 ## Solution
-
-<!--TODO ebirdst_predictors is old-->
 
 ```{r}
 #| label: abundance-habitat-pi-sol
@@ -428,7 +426,9 @@ filter(ebirdst_predictors,
        predictor %in% c("mcd12q1_lccs1_c12_pland",
                         "ntl_mean",
                         "mcd12q1_lccs1_c31_pland")) %>% 
-  select(predictor, predictor_label)
+  select(predictor, label)
+
+glimpse(ebirdst_predictor_datasets)
 ```
 :::
 
@@ -757,7 +757,7 @@ brks <- ifel(r_plot > 0, r_plot, NA) %>%
 # label the bottom, middle, and top value
 lbls <- round(c(min(brks), median(brks), max(brks)), 2)
 # ebird status and trends color palette
-pal <- abundance_palette(length(brks) - 1)
+pal <- ebirdst_palettes(n = length(brks) - 1, type = "weekly")
 plot(r_plot, 
      col = c("#e6e6e6", pal), breaks = c(0, brks), 
      maxpixels = ncell(r_plot),
