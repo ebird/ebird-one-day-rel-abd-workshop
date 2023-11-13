@@ -167,7 +167,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a>
   <ul class="collapse">
   <li><a href="#sec-intro-setup" id="toc-sec-intro-setup" class="nav-link" data-scroll-target="#sec-intro-setup">Setup</a></li>
-  <li><a href="#data" id="toc-data" class="nav-link" data-scroll-target="#data">Data</a></li>
+  <li><a href="#sec-intro-setup-data" id="toc-sec-intro-setup-data" class="nav-link" data-scroll-target="#sec-intro-setup-data">Data</a></li>
+  <li><a href="#template-r-scripts" id="toc-template-r-scripts" class="nav-link" data-scroll-target="#template-r-scripts">Template R scripts</a></li>
   <li><a href="#sec-intro-tidyverse" id="toc-sec-intro-tidyverse" class="nav-link" data-scroll-target="#sec-intro-tidyverse">Tidyverse</a></li>
   </ul></li>
   </ul>
@@ -219,8 +220,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Ensure all packages are updated to their most recent versions by clicking on the Update button on the Packages tab in RStudio.</li>
 </ol>
 </section>
-<section id="data" class="level2">
-<h2 class="anchored" data-anchor-id="data">Data</h2>
+<section id="sec-intro-setup-data" class="level2">
+<h2 class="anchored" data-anchor-id="sec-intro-setup-data">Data</h2>
 <p>Since having a large group of workshop participants attempt to download a large amount of data all at once, on the same WIFI connection, we’ve provided pre-packaged data and a script to load it into the correct directories before the workshop begins.</p>
 <div class="cell" data-layout-align="center">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># download data package to root project directory</span></span>
@@ -231,6 +232,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co"># unzip</span></span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">unzip</span>(<span class="st">"data.zip"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+</section>
+<section id="template-r-scripts" class="level2">
+<h2 class="anchored" data-anchor-id="template-r-scripts">Template R scripts</h2>
+<p>During the workshop we’ll work through the lessons on this website, writing code together in real time; however, it will be useful to have script templates to work from. Open RStudio, then:</p>
+<ol type="1">
+<li>Create a script named “ebird-data.R”, visit <a href="https://raw.githubusercontent.com/ebird/ebirdst-one-day-rel-abd-workshop/main/scripts/ebird-data.R">this link</a>, and copy the contents into the script you just created.</li>
+<li>Create a script named “ebird-rel-abd.R”, visit <a href="https://raw.githubusercontent.com/ebird/ebirdst-one-day-rel-abd-workshop/main/scripts/ebird-rel-abd.R">this link</a>, and copy the contents into the script you just created.</li>
+</ol>
 </section>
 <section id="sec-intro-tidyverse" class="level2">
 <h2 class="anchored" data-anchor-id="sec-intro-tidyverse">Tidyverse</h2>

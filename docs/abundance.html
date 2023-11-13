@@ -902,7 +902,7 @@ Checkpoint
 </div>
 <p>Again, here the last quantile value is way out at 10 and could generate extrapolation, so we’ll choose 5.5 km, the next quantile value. We also need to remember that we have <code>effort_speed_kmph</code> as a predictor in the model. Let’s generate a partial for this, to see if 5.5 km / 3.5 hours produces a reasonable value.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate a partial dependence plot for solar noon diff</span></span>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate a partial dependence plot for rate</span></span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>pd_km <span class="ot">&lt;-</span> <span class="fu">calculate_pd</span>(<span class="st">"effort_speed_kmph"</span>,</span>
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">model =</span> er_model, </span>
 <span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">data =</span> checklists_train) <span class="sc">%&gt;%</span> </span>

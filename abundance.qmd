@@ -620,7 +620,7 @@ Again, here the last quantile value is way out at 10 and could generate extrapol
 
 ```{r}
 #| label:  abundance-predict-pd-rate
-# estimate a partial dependence plot for solar noon diff
+# estimate a partial dependence plot for rate
 pd_km <- calculate_pd("effort_speed_kmph",
                         model = er_model, 
                         data = checklists_train) %>% 

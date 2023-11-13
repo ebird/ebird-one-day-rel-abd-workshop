@@ -33,7 +33,7 @@ remotes::install_github("ebird/ebird-best-practices")
 
 5.  Ensure all packages are updated to their most recent versions by clicking on the Update button on the Packages tab in RStudio.
 
-## Data
+## Data {#sec-intro-setup-data}
 
 Since having a large group of workshop participants attempt to download a large amount of data all at once, on the same WIFI connection, we've provided pre-packaged data and a script to load it into the correct directories before the workshop begins.
 
@@ -49,6 +49,14 @@ download.file("https://cornell.box.com/shared/static/vpk03qqwjtswskam246prd5h9am
 # unzip
 unzip("data.zip")
 ```
+
+## Template R scripts
+
+During the workshop we'll work through the lessons on this website, writing code together in real time; however, it will be useful to have script templates to work from. Open RStudio, then:
+
+1. Create a script named "ebird-data.R", visit [this link](https://raw.githubusercontent.com/ebird/ebirdst-one-day-rel-abd-workshop/main/scripts/ebird-data.R), and copy the contents into the script you just created.
+2. Create a script named "ebird-rel-abd.R", visit [this link](https://raw.githubusercontent.com/ebird/ebirdst-one-day-rel-abd-workshop/main/scripts/ebird-rel-abd.R), and copy the contents into the script you just created.
+
 
 ## Tidyverse {#sec-intro-tidyverse}
 

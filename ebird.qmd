@@ -96,7 +96,7 @@ ggplot(checklists_traveling) +
 ```
 :::
 
-Next, let's import the observation data.
+Next, let's load the observation data.
 
 ```{r}
 #| label: ebird-import-ebd
