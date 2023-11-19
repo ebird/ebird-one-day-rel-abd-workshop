@@ -107,7 +107,7 @@ table(checklists$type) / nrow(checklists)
 
 ### Case controlled grid sampling {#sec-abundance-data-sampling}
 
-Following the method outlined in @sec-ebird-bias, we perform a round of case controlled grid sampling on the data to reduce spatial and temporal bias as well as class imbalance. We can use the `sample_by` argument to `grid_sample_stratified()` to independently sample from the train and test sets to remove bias from both.
+Following the method outlined in @sec-ebird-erd-bias, we perform a round of case controlled grid sampling on the data to reduce spatial and temporal bias as well as class imbalance. We can use the `sample_by` argument to `grid_sample_stratified()` to independently sample from the train and test sets to remove bias from both.
 
 ```{r}
 #| label: abundance-data-sampling
@@ -522,7 +522,7 @@ Consider the relationships shown in the partial dependence plots in light of you
 
 ## Prediction {#sec-abundance-predict}
 
-Using the prediction grid described in @sec-ebird-pred, we can estimate relative abundance over our entire study area. First we estimate encounter rate and count, then we multiply these together to get an estimate of relative abundance. Let's read in the prediction grid and subset to just the region we're focusing on.
+Using the prediction grid described in @sec-ebird-erd-pred, we can estimate relative abundance over our entire study area. First we estimate encounter rate and count, then we multiply these together to get an estimate of relative abundance. Let's read in the prediction grid and subset to just the region we're focusing on.
 
 ```{r}
 #| label: abundance-predict-read
@@ -773,7 +773,7 @@ box()
 # legend
 image.plot(zlim = c(0, 1), legend.only = TRUE,
            col = pal, breaks = seq(0, 1, length.out = length(brks)),
-           smallplot = c(0.88, 0.90, 0.2, 0.8),
+           smallplot = c(0.89, 0.91, 0.2, 0.8),
            horizontal = FALSE,
            axis.args = list(at = c(0, 0.5, 1), labels = lbls,
                             fg = "black", col.axis = "black",

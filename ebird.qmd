@@ -14,22 +14,12 @@ Let's compare two eBird checklists: an [incidental observation with missing coun
 
 The first part of this lesson will work with the [eBird Basic Dataset (EBD)](https://science.ebird.org/en/use-ebird-data/download-ebird-data-products). This will allow users to prepare eBird data for relative abundance modeling up to the point of assigning environmental variables as predictors and will be useful for users after the workshop. For the sake of brevity, the second part of this lesson will provide data from the eBird Reference Dataset (ERD), the collection of semi-structured eBird data used by the eBird Status and Trends team for modeling species distributions and relative abundance. A subset of this dataset will be provided in the data package for this workshop. 
 
-::: callout-tip
-## Tip
 
-This workshop will only cover the eBird Reference Dataset (ERD). For access to the full eBird dataset updated monthly, you'll need to work with the [eBird Basic Dataset (EBD)](https://science.ebird.org/en/use-ebird-data/download-ebird-data-products). For details on working with the EBD consult the [eBird Best Practices book](https://ebird.github.io/ebird-best-practices). Some of the advantages and disadvantages of the two datasts are:
-
-```{r}
-#| echo: false
-knitr::kable(readr::read_csv("data-raw/erd-ebd-comparison.csv"), escape = FALSE)
-```
-:::
-
-# raw eBird Data (EBD) {#sec-ebd}
+## raw eBird Data (EBD) {#sec-ebird-ebd}
 
 eBird data are released as two tab-separated text files: the *eBird Basic Dataset (EBD)* containing observation data and the *Sampling Event Data (SED)* containing checklist data. These files are released monthly and contain all validated bird sightings in the eBird database at the time of release. In the EBD, each row corresponds to the sighting of a single species on a checklist, including the count and any other species-level information (e.g. age, sex, species comments, etc.). In the SED, each row corresponds to a checklist, including the date, time, location, effort (e.g. distance traveled, time spent, etc.), and any additional checklist-level information (e.g. whether this is a complete checklist or not).
 
-## Downloading data {#sec-ebird-download}
+### Downloading data {#sec-ebird-ebd-download}
 
 In this workshop, we'll use [Shining Bronze-Cuckoo](https://ebird.org/species/shbcuc1) observations from Queensland, Australia as an example. We'll start by downloading the corresponding eBird observation (EBD) and checklist (SED) data by visiting the [eBird Basic Dataset](https://ebird.org/data/download/ebd) download page and filling out the Custom Download form to request Shining Bronze-Cuckoo observations from Queensland. **Make sure you check the box "Include sampling event data"**, which will include the SED in the data download in addition to the EBD.
 
@@ -45,7 +35,7 @@ Once the data are ready, you will receive an email with a download link. The dow
 
 If you would prefer to directly download the exact dataset used in this workshop, download the [data package for this workshop](index.qmd#sec-intro-data).
 
-## Importing eBird data into R {#sec-ebird-import}
+### Importing eBird data into R {#sec-ebird-ebd-import}
 
 The previous step left us with two tab separated text files, one for the EBD (i.e. observation data) and one for the SED (i.e. checklist data). Start a new RStudio project and put the downloaded text files in the `data/` sub-directory of the project directory.
 
@@ -113,7 +103,7 @@ Take some time to explore the variables in the observation dataset. Notice that 
 
 When we read the data into R, we used `unique = FALSE` and `rollup = FALSE`. By default the read functions in `auk` perform two important pre-processing steps: **combining duplicate shared checklists** and **taxonomic rollup**. We intentionally turned off this functionality for the purposes of demonstration.
 
-### Shared checklists {#sec-ebird-import-shared}
+#### Shared checklists {#sec-ebird-ebd-import-shared}
 
 eBird allows users to [share checklists](https://support.ebird.org/en/support/solutions/articles/48000625567-checklist-sharing-and-group-accounts#anchorShareChecklists) with other eBirders in their group, for example [this checklist](https://ebird.org/checklist/S146159554) is shared by 47 observers! These checklists can be identified by looking at the `group_identifier` variable, which assigns an ID connecting all checklists in the group.
 
@@ -155,7 +145,7 @@ checklists_unique %>%
 ```
 :::
 
-### Taxonomic rollup {#sec-ebird-import-rollup}
+#### Taxonomic rollup {#sec-ebird-ebd-import-rollup}
 
 eBird observations can be made at levels below species (e.g. subspecies) or above species (e.g. a bird that was identified as a duck, but the species could not be determined); however, for most uses we'll want observations at the species level. This is especially true if we want to produce detection/non-detection data from complete checklists because "complete" only applies at the species level.
 
@@ -188,7 +178,7 @@ observations_rollup %>%
 If multiple taxa on a single checklist roll up to the same species, `auk_rollup()` attempts to combine them intelligently. If each observation has a count, those counts are added together, but if any of the observations is missing a count (i.e. the count is "X") the combined observation is also assigned an "X". In the [example checklist](https://ebird.org/checklist/S100099262) from the previous tip, with four taxa all rolling up to Yellow-rumped Warbler, `auk_rollup()` will add the four counts together to get 21 Yellow-rumped Warblers (10 + 5 + 5 + 1).
 :::
 
-## Generating detection/non-detection data {#sec-ebird-zf}
+### Generating detection/non-detection data {#sec-ebird-ebd-zf}
 
 Complete eBird checklists are extremely valuable because, for all species that weren't reported, we can infer counts of 0. This allows us to convert eBird from presence only data to detection/non-detection data, which allows for much more robust analyses. Note that we don't use the term presence/absence data here because a non-detection doesn't necessarily imply the species was absent, only that the observer didn't detect and identify it.
 
@@ -228,7 +218,7 @@ select(zf, observation_count, species_observed) %>%
   head(10)
 ```
 
-## Filtering data {#sec-ebird-filtering}
+### Filtering data {#sec-ebird-ebd-filtering}
 
 Now that you have a detection/non-detection dataset, it's likely that you want to do something with it. For example, you may want to make a map, identify priority areas for a species, or train a species distribution model. Regardless of the specific application, it's likely that some amount of filtering of the data is required first. Some of the ways you may want to filter eBird data include:
 
@@ -252,11 +242,11 @@ nrow(zf_filtered)
 
 We reduced the number of checklists by `r scales::comma(nrow(zf) - nrow(zf_filtered))`, but the checklists remaining are of higher quality.
 
-## Environmental Covariate Assignment
+### Environmental Covariate Assignment
 
 At this point, if you were planning to run a species distribution model with this data, you'd want some environmental variables as predictors. However, adding environmental variables can be onerous, computationally expensive, and varies based on use case. We [provide guidance](https://ebird.github.io/ebird-best-practices/envvar.html) in our "Best Practices for Using eBird Data" document on extracting environmental variables to use with eBird data. For continuing this work on your own, please use that reference. For the remainder of this workshop, we're going to skip this process and use the eBird Reference Dataset (ERD) that already contains the environmental variables used in for eBird Status and Trends modeling.
 
-# eBird Reference Dataset (ERD) {#sec-ebird-erd}
+## eBird Reference Dataset (ERD) {#sec-ebird-erd}
 
 The eBird Reference Dataset (ERD) is a subset of the full eBird database created annually for eBird Status and Trends modeling. Only semi-structured (complete checklists with effort information) traveling and stationary counts from the last 15 years are included in the ERD and we assign a set of environmental variables assigned to checklist. In the following sections we'll provide an introduction to the ERD, describe the associated prediction grid used to make predictions across space, and highlight some of the challenges associated with using eBird data for analysis.
 
@@ -291,7 +281,7 @@ All the remaining variables are not collected in eBird, they're calculated and a
 
 ![Example of calculating percent land cover and edge density for a 3km diamter circular neighborhood centered on a checklist location. `pland` for each class is the percent of the circle covered by that class. To calculate `ed` for each class, we add up the perimeter lengths of all patches of that class, then divide by the area of the circle.](images/landscape-metrics.png)
 
-The land and water cover variables can be challenging to interpret based on their names alone (e.g. `mcd12q1_lccs1_fs_c12_1500_pland`); however, these names can be looked up in the `ebirdst_predictors` data frame from the `ebirdst` package. For example, let's look up what `mcd12q1_lccs1_fs_c12_1500_pland` corresponds to.
+The land and water cover variables can be challenging to interpret based on their names alone (e.g. `mcd12q1_lccs1_c12_pland`); however, these names can be looked up in the `ebirdst_predictors` data frame from the `ebirdst` package. For example, let's look up what `mcd12q1_lccs1_c12_pland` corresponds to.
 
 ```{r}
 #| label: ebird-erd-predlookup
@@ -333,7 +323,7 @@ filter(ebird_taxonomy, species_code == "maslap1") %>%
 ```
 :::
 
-## Zero-filling eBird data
+### Zero-filling eBird data
 
 Complete eBird checklists are extremely valuable because, for all species that weren't reported, we can infer counts of 0. This allows us to convert eBird from presence only data to detection/non-detection data, which allows for much more robust analyses. Note that we don't use the term presence/absence data here because a non-detection doesn't necessarily imply the species was absent, only that observer wasn't able to detect and identify it.
 
@@ -450,7 +440,7 @@ head(sp_zf)
 ```
 :::
 
-## Prediction grid {#sec-ebird-pred}
+### Prediction grid {#sec-ebird-erd-pred}
 
 The ultimate goal of modeling the occurrence or abundance of a species is frequently to produce a map showing the distribution of that species in space. To do so, we need to know the values of our predictor variables over the region that we intend to make predictions. To make this possible, the ERD is distributed with a **prediction grid**: a regular grid of points covering the entire globe spaced 3km apart for which all the environmental variables have been calculated for the year 2022.
 
@@ -492,7 +482,7 @@ plot(trim(forest_cover), axes = FALSE)
 
 The map looks distorted because the prediction grid uses a sinusoidal projection, which works well for analysis but not for mapping. In the next lesson, we'll demonstrate how to project data into a coordinate reference system more suitable for mapping.
 
-## Spatial and temporal bias {#sec-ebird-bias}
+### Spatial and temporal bias {#sec-ebird-erd-bias}
 
 Despite the strengths of eBird data, species observations collected through citizen science projects exhibit both spatial and temporal bias requiring special care when using them for rigorous analyses. **Spatial bias** occurs because eBird participants are more likely to be collect data near their homes, in easily accessible areas such as roadsides, or in areas known to be good for birding. Looking at the above map of bird observations it's clear that the eBird checklists are clustered around cities and roads. **Temporal bias** occurs because participants preferentially collect data when they are available, such as weekends, and at times of year when they expect to observe more birds, notably during the breeding season. We can plot the distribution of checklists over the days of the year to see this bias:
 

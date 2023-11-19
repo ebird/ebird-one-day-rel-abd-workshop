@@ -165,23 +165,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#sec-ebd" id="toc-sec-ebd" class="nav-link active" data-scroll-target="#sec-ebd"><span class="header-section-number">2</span> raw eBird Data (EBD)</a>
+  <li><a href="#sec-ebird-ebd" id="toc-sec-ebird-ebd" class="nav-link active" data-scroll-target="#sec-ebird-ebd"><span class="header-section-number">1.1</span> raw eBird Data (EBD)</a>
   <ul class="collapse">
-  <li><a href="#sec-ebird-download" id="toc-sec-ebird-download" class="nav-link" data-scroll-target="#sec-ebird-download"><span class="header-section-number">2.1</span> Downloading data</a></li>
-  <li><a href="#sec-ebird-import" id="toc-sec-ebird-import" class="nav-link" data-scroll-target="#sec-ebird-import"><span class="header-section-number">2.2</span> Importing eBird data into R</a>
-  <ul class="collapse">
-  <li><a href="#sec-ebird-import-shared" id="toc-sec-ebird-import-shared" class="nav-link" data-scroll-target="#sec-ebird-import-shared"><span class="header-section-number">2.2.1</span> Shared checklists</a></li>
-  <li><a href="#sec-ebird-import-rollup" id="toc-sec-ebird-import-rollup" class="nav-link" data-scroll-target="#sec-ebird-import-rollup"><span class="header-section-number">2.2.2</span> Taxonomic rollup</a></li>
+  <li><a href="#sec-ebird-ebd-download" id="toc-sec-ebird-ebd-download" class="nav-link" data-scroll-target="#sec-ebird-ebd-download"><span class="header-section-number">1.1.1</span> Downloading data</a></li>
+  <li><a href="#sec-ebird-ebd-import" id="toc-sec-ebird-ebd-import" class="nav-link" data-scroll-target="#sec-ebird-ebd-import"><span class="header-section-number">1.1.2</span> Importing eBird data into R</a></li>
+  <li><a href="#sec-ebird-ebd-zf" id="toc-sec-ebird-ebd-zf" class="nav-link" data-scroll-target="#sec-ebird-ebd-zf"><span class="header-section-number">1.1.3</span> Generating detection/non-detection data</a></li>
+  <li><a href="#sec-ebird-ebd-filtering" id="toc-sec-ebird-ebd-filtering" class="nav-link" data-scroll-target="#sec-ebird-ebd-filtering"><span class="header-section-number">1.1.4</span> Filtering data</a></li>
+  <li><a href="#environmental-covariate-assignment" id="toc-environmental-covariate-assignment" class="nav-link" data-scroll-target="#environmental-covariate-assignment"><span class="header-section-number">1.1.5</span> Environmental Covariate Assignment</a></li>
   </ul></li>
-  <li><a href="#sec-ebird-zf" id="toc-sec-ebird-zf" class="nav-link" data-scroll-target="#sec-ebird-zf"><span class="header-section-number">2.3</span> Generating detection/non-detection data</a></li>
-  <li><a href="#sec-ebird-filtering" id="toc-sec-ebird-filtering" class="nav-link" data-scroll-target="#sec-ebird-filtering"><span class="header-section-number">2.4</span> Filtering data</a></li>
-  <li><a href="#environmental-covariate-assignment" id="toc-environmental-covariate-assignment" class="nav-link" data-scroll-target="#environmental-covariate-assignment"><span class="header-section-number">2.5</span> Environmental Covariate Assignment</a></li>
-  </ul></li>
-  <li><a href="#sec-ebird-erd" id="toc-sec-ebird-erd" class="nav-link" data-scroll-target="#sec-ebird-erd"><span class="header-section-number">3</span> eBird Reference Dataset (ERD)</a>
+  <li><a href="#sec-ebird-erd" id="toc-sec-ebird-erd" class="nav-link" data-scroll-target="#sec-ebird-erd"><span class="header-section-number">1.2</span> eBird Reference Dataset (ERD)</a>
   <ul class="collapse">
-  <li><a href="#zero-filling-ebird-data" id="toc-zero-filling-ebird-data" class="nav-link" data-scroll-target="#zero-filling-ebird-data"><span class="header-section-number">3.1</span> Zero-filling eBird data</a></li>
-  <li><a href="#sec-ebird-pred" id="toc-sec-ebird-pred" class="nav-link" data-scroll-target="#sec-ebird-pred"><span class="header-section-number">3.2</span> Prediction grid</a></li>
-  <li><a href="#sec-ebird-bias" id="toc-sec-ebird-bias" class="nav-link" data-scroll-target="#sec-ebird-bias"><span class="header-section-number">3.3</span> Spatial and temporal bias</a></li>
+  <li><a href="#zero-filling-ebird-data" id="toc-zero-filling-ebird-data" class="nav-link" data-scroll-target="#zero-filling-ebird-data"><span class="header-section-number">1.2.1</span> Zero-filling eBird data</a></li>
+  <li><a href="#sec-ebird-erd-pred" id="toc-sec-ebird-erd-pred" class="nav-link" data-scroll-target="#sec-ebird-erd-pred"><span class="header-section-number">1.2.2</span> Prediction grid</a></li>
+  <li><a href="#sec-ebird-erd-bias" id="toc-sec-ebird-erd-bias" class="nav-link" data-scroll-target="#sec-ebird-erd-bias"><span class="header-section-number">1.2.3</span> Spatial and temporal bias</a></li>
   </ul></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/ebird/ebird-one-day-rel-abd-workshop/edit/main/ebird.qmd" class="toc-action">Edit this page</a></p><p><a href="https://github.com/ebird/ebird-one-day-rel-abd-workshop/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
@@ -209,58 +205,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>eBird data are collected and organized around the concept of a checklist, representing observations from a single birding event, such as a 1 km walk through a park or 15 minutes observing bird feeders in your backyard. All eBird checklists contains a list of species observed and the location and time of the observations. For a subset of checklists, the observer will also provide counts of the number of individuals seen of each species, specify the amount of effort expended while collecting these data, and confirm that they are submitting a complete checklist of all the birds they were able to identify. The data provided by the checklists such as these is often referred to as <strong>semi-structured citizen science data</strong>.</p>
 <p>Let’s compare two eBird checklists: an <a href="https://ebird.org/checklist/S136805959">incidental observation with missing counts</a> and a <a href="https://ebird.org/checklist/S136805666">complete traveling count</a>. Both checklists can be useful, but only the second checklist provides the type of semi-structured data required for more rigorous applications.</p>
 <p>The first part of this lesson will work with the <a href="https://science.ebird.org/en/use-ebird-data/download-ebird-data-products">eBird Basic Dataset (EBD)</a>. This will allow users to prepare eBird data for relative abundance modeling up to the point of assigning environmental variables as predictors and will be useful for users after the workshop. For the sake of brevity, the second part of this lesson will provide data from the eBird Reference Dataset (ERD), the collection of semi-structured eBird data used by the eBird Status and Trends team for modeling species distributions and relative abundance. A subset of this dataset will be provided in the data package for this workshop.</p>
-<div class="callout callout-style-default callout-tip callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Tip
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>This workshop will only cover the eBird Reference Dataset (ERD). For access to the full eBird dataset updated monthly, you’ll need to work with the <a href="https://science.ebird.org/en/use-ebird-data/download-ebird-data-products">eBird Basic Dataset (EBD)</a>. For details on working with the EBD consult the <a href="https://ebird.github.io/ebird-best-practices">eBird Best Practices book</a>. Some of the advantages and disadvantages of the two datasts are:</p>
-<div class="cell" data-layout-align="center">
-<div class="cell-output-display">
-<table class="table table-sm table-striped small">
-<colgroup>
-<col style="width: 39%">
-<col style="width: 60%">
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: left;">eBird Reference Dataset (ERD)</th>
-<th style="text-align: left;">eBird Basic Dataset (EBD)</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">contains only complete traveling and stationary counts from the last 15 years</td>
-<td style="text-align: left;">contains all eBird observations except for sensitive species</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">updated annually</td>
-<td style="text-align: left;">updated monthly</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">environmental variables assigned to checklists</td>
-<td style="text-align: left;">complete set of variables from the eBird database including checklist comments, species comments, breeding codes, etc.</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">format is easier to work with in R</td>
-<td style="text-align: left;"></td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-</div>
-<section id="sec-ebd" class="level1" data-number="2">
-<h1 data-number="2"><span class="header-section-number">2</span> raw eBird Data (EBD)</h1>
+<section id="sec-ebird-ebd" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="sec-ebird-ebd"><span class="header-section-number">1.1</span> raw eBird Data (EBD)</h2>
 <p>eBird data are released as two tab-separated text files: the <em>eBird Basic Dataset (EBD)</em> containing observation data and the <em>Sampling Event Data (SED)</em> containing checklist data. These files are released monthly and contain all validated bird sightings in the eBird database at the time of release. In the EBD, each row corresponds to the sighting of a single species on a checklist, including the count and any other species-level information (e.g.&nbsp;age, sex, species comments, etc.). In the SED, each row corresponds to a checklist, including the date, time, location, effort (e.g.&nbsp;distance traveled, time spent, etc.), and any additional checklist-level information (e.g.&nbsp;whether this is a complete checklist or not).</p>
-<section id="sec-ebird-download" class="level2" data-number="2.1">
-<h2 data-number="2.1" class="anchored" data-anchor-id="sec-ebird-download"><span class="header-section-number">2.1</span> Downloading data</h2>
+<section id="sec-ebird-ebd-download" class="level3" data-number="1.1.1">
+<h3 data-number="1.1.1" class="anchored" data-anchor-id="sec-ebird-ebd-download"><span class="header-section-number">1.1.1</span> Downloading data</h3>
 <p>In this workshop, we’ll use <a href="https://ebird.org/species/shbcuc1">Shining Bronze-Cuckoo</a> observations from Queensland, Australia as an example. We’ll start by downloading the corresponding eBird observation (EBD) and checklist (SED) data by visiting the <a href="https://ebird.org/data/download/ebd">eBird Basic Dataset</a> download page and filling out the Custom Download form to request Shining Bronze-Cuckoo observations from Queensland. <strong>Make sure you check the box “Include sampling event data”</strong>, which will include the SED in the data download in addition to the EBD.</p>
 <p><img src="images/ebird-data_download.png" class="img-fluid"></p>
 <div class="callout callout-style-default callout-tip callout-titled">
@@ -279,8 +228,8 @@ Tip
 <p>Once the data are ready, you will receive an email with a download link. The downloaded data will be in a compressed .zip format, and should be unarchived. The resulting directory will contain a two text files: one for the EBD (e.g.&nbsp;<code>ebd_BR-RS_fotfly_smp_relJun-2023.txt</code>) containing all the Shining Bronze-Cuckoo observations from Queensland, and one for the SED (e.g.&nbsp;<code>ebd_BR-RS_fotfly_smp_relJun-2023_sampling.txt</code>) containing all checklists from Queensland, The <code>relJune-2023</code> component of the file name describes which version of the EBD this dataset came from; in this case it’s the June 2023 release.</p>
 <p>If you would prefer to directly download the exact dataset used in this workshop, download the <a href="./index.html#sec-intro-data">data package for this workshop</a>.</p>
 </section>
-<section id="sec-ebird-import" class="level2" data-number="2.2">
-<h2 data-number="2.2" class="anchored" data-anchor-id="sec-ebird-import"><span class="header-section-number">2.2</span> Importing eBird data into R</h2>
+<section id="sec-ebird-ebd-import" class="level3" data-number="1.1.2">
+<h3 data-number="1.1.2" class="anchored" data-anchor-id="sec-ebird-ebd-import"><span class="header-section-number">1.1.2</span> Importing eBird data into R</h3>
 <p>The previous step left us with two tab separated text files, one for the EBD (i.e.&nbsp;observation data) and one for the SED (i.e.&nbsp;checklist data). Start a new RStudio project and put the downloaded text files in the <code>data/</code> sub-directory of the project directory.</p>
 <p>The <code>auk</code> R package is specifically designed for working with eBird data. It includes the functions <a href="https://cornelllabofornithology.github.io/auk/reference/read_ebd.html"><code>read_ebd()</code></a> and <a href="https://cornelllabofornithology.github.io/auk/reference/read_ebd.html"><code>read_sampling()</code></a> for importing the EBD and SED, respectively, into R. First let’s import the checklist data (SED).</p>
 <div class="cell" data-layout-align="center">
@@ -354,7 +303,7 @@ Exercise
 </div>
 </div>
 <div class="callout callout-style-default callout-note no-icon callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-5-contents" aria-controls="callout-5" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-4-contents" aria-controls="callout-4" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
@@ -363,7 +312,7 @@ Solution
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-5" class="callout-5-contents callout-collapse collapse">
+<div id="callout-4" class="callout-4-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>Nearly 90% of checklists are less than 10km in length; however, some checklists are as long as 80km in length. Long traveling checklists have lower spatial precision so they should generally be removed prior to analysis.</p>
 <div class="cell" data-layout-align="center">
@@ -457,8 +406,8 @@ Checkpoint
 </div>
 </div>
 <p>When we read the data into R, we used <code>unique = FALSE</code> and <code>rollup = FALSE</code>. By default the read functions in <code>auk</code> perform two important pre-processing steps: <strong>combining duplicate shared checklists</strong> and <strong>taxonomic rollup</strong>. We intentionally turned off this functionality for the purposes of demonstration.</p>
-<section id="sec-ebird-import-shared" class="level3" data-number="2.2.1">
-<h3 data-number="2.2.1" class="anchored" data-anchor-id="sec-ebird-import-shared"><span class="header-section-number">2.2.1</span> Shared checklists</h3>
+<section id="sec-ebird-ebd-import-shared" class="level4" data-number="1.1.2.1">
+<h4 data-number="1.1.2.1" class="anchored" data-anchor-id="sec-ebird-ebd-import-shared"><span class="header-section-number">1.1.2.1</span> Shared checklists</h4>
 <p>eBird allows users to <a href="https://support.ebird.org/en/support/solutions/articles/48000625567-checklist-sharing-and-group-accounts#anchorShareChecklists">share checklists</a> with other eBirders in their group, for example <a href="https://ebird.org/checklist/S146159554">this checklist</a> is shared by 47 observers! These checklists can be identified by looking at the <code>group_identifier</code> variable, which assigns an ID connecting all checklists in the group.</p>
 <div class="cell" data-layout-align="center">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>checklists <span class="sc">%&gt;%</span> </span>
@@ -514,8 +463,8 @@ Tip
 </div>
 </div>
 </section>
-<section id="sec-ebird-import-rollup" class="level3" data-number="2.2.2">
-<h3 data-number="2.2.2" class="anchored" data-anchor-id="sec-ebird-import-rollup"><span class="header-section-number">2.2.2</span> Taxonomic rollup</h3>
+<section id="sec-ebird-ebd-import-rollup" class="level4" data-number="1.1.2.2">
+<h4 data-number="1.1.2.2" class="anchored" data-anchor-id="sec-ebird-ebd-import-rollup"><span class="header-section-number">1.1.2.2</span> Taxonomic rollup</h4>
 <p>eBird observations can be made at levels below species (e.g.&nbsp;subspecies) or above species (e.g.&nbsp;a bird that was identified as a duck, but the species could not be determined); however, for most uses we’ll want observations at the species level. This is especially true if we want to produce detection/non-detection data from complete checklists because “complete” only applies at the species level.</p>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -569,8 +518,8 @@ Tip
 </div>
 </section>
 </section>
-<section id="sec-ebird-zf" class="level2" data-number="2.3">
-<h2 data-number="2.3" class="anchored" data-anchor-id="sec-ebird-zf"><span class="header-section-number">2.3</span> Generating detection/non-detection data</h2>
+<section id="sec-ebird-ebd-zf" class="level3" data-number="1.1.3">
+<h3 data-number="1.1.3" class="anchored" data-anchor-id="sec-ebird-ebd-zf"><span class="header-section-number">1.1.3</span> Generating detection/non-detection data</h3>
 <p>Complete eBird checklists are extremely valuable because, for all species that weren’t reported, we can infer counts of 0. This allows us to convert eBird from presence only data to detection/non-detection data, which allows for much more robust analyses. Note that we don’t use the term presence/absence data here because a non-detection doesn’t necessarily imply the species was absent, only that the observer didn’t detect and identify it.</p>
 <p>We refer to the process of producing detection/non-detection data as “zero-filling” the eBird data because we’re filling in the missing zeros. We’ll read the eBird data into R again, filter to only complete checklists, then use the function <a href="https://cornelllabofornithology.github.io/auk/reference/auk_zerofill.html"><code>auk_zerofill()</code></a> to generate detection/non-detection data. Note that shared checklists are combined and taxonomic rollup is performed by default when using the <code>read_*()</code> functions from <code>auk</code>.</p>
 <div class="cell" data-layout-align="center">
@@ -660,8 +609,8 @@ Tip
 <span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # ℹ 4 more rows</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="sec-ebird-filtering" class="level2" data-number="2.4">
-<h2 data-number="2.4" class="anchored" data-anchor-id="sec-ebird-filtering"><span class="header-section-number">2.4</span> Filtering data</h2>
+<section id="sec-ebird-ebd-filtering" class="level3" data-number="1.1.4">
+<h3 data-number="1.1.4" class="anchored" data-anchor-id="sec-ebird-ebd-filtering"><span class="header-section-number">1.1.4</span> Filtering data</h3>
 <p>Now that you have a detection/non-detection dataset, it’s likely that you want to do something with it. For example, you may want to make a map, identify priority areas for a species, or train a species distribution model. Regardless of the specific application, it’s likely that some amount of filtering of the data is required first. Some of the ways you may want to filter eBird data include:</p>
 <ul>
 <li><strong>Temporal filtering</strong>: filter the data to a specific range of years or to a specific time of year.</li>
@@ -683,13 +632,13 @@ Tip
 </div>
 <p>We reduced the number of checklists by 166,413, but the checklists remaining are of higher quality.</p>
 </section>
-<section id="environmental-covariate-assignment" class="level2" data-number="2.5">
-<h2 data-number="2.5" class="anchored" data-anchor-id="environmental-covariate-assignment"><span class="header-section-number">2.5</span> Environmental Covariate Assignment</h2>
+<section id="environmental-covariate-assignment" class="level3" data-number="1.1.5">
+<h3 data-number="1.1.5" class="anchored" data-anchor-id="environmental-covariate-assignment"><span class="header-section-number">1.1.5</span> Environmental Covariate Assignment</h3>
 <p>At this point, if you were planning to run a species distribution model with this data, you’d want some environmental variables as predictors. However, adding environmental variables can be onerous, computationally expensive, and varies based on use case. We <a href="https://ebird.github.io/ebird-best-practices/envvar.html">provide guidance</a> in our “Best Practices for Using eBird Data” document on extracting environmental variables to use with eBird data. For continuing this work on your own, please use that reference. For the remainder of this workshop, we’re going to skip this process and use the eBird Reference Dataset (ERD) that already contains the environmental variables used in for eBird Status and Trends modeling.</p>
 </section>
 </section>
-<section id="sec-ebird-erd" class="level1" data-number="3">
-<h1 data-number="3"><span class="header-section-number">3</span> eBird Reference Dataset (ERD)</h1>
+<section id="sec-ebird-erd" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="sec-ebird-erd"><span class="header-section-number">1.2</span> eBird Reference Dataset (ERD)</h2>
 <p>The eBird Reference Dataset (ERD) is a subset of the full eBird database created annually for eBird Status and Trends modeling. Only semi-structured (complete checklists with effort information) traveling and stationary counts from the last 15 years are included in the ERD and we assign a set of environmental variables assigned to checklist. In the following sections we’ll provide an introduction to the ERD, describe the associated prediction grid used to make predictions across space, and highlight some of the challenges associated with using eBird data for analysis.</p>
 <p>The ERD is distributed in two parts: observation data and checklist data. In the observation dataset, each row corresponds to the sighting of a single species on a checklist, including the count and any other species-level information. In the checklist dataset, each row corresponds to a checklist, including the date, time, location, effort (e.g.&nbsp;distance traveled, time spent, etc.), and any additional checklist-level information.</p>
 <p>For this workshop, and extract of the ERD is provided in the workshop data package. The observations and checklsits datasets are provided in <a href="https://parquet.apache.org/">parquet format</a>, an open source standard for efficient storage and retrieval of tabular data. If you haven’t already done so, following the <a href="index.html#sec-intro-setup">instructions in the Introduction</a> to create an RStudio project and download the workshop data package. The parquet files should be located at:</p>
@@ -869,7 +818,7 @@ data/ebird_checklists_AU-QLD.parquet</code></pre>
 <figcaption class="figure-caption">Example of calculating percent land cover and edge density for a 3km diamter circular neighborhood centered on a checklist location. <code>pland</code> for each class is the percent of the circle covered by that class. To calculate <code>ed</code> for each class, we add up the perimeter lengths of all patches of that class, then divide by the area of the circle.</figcaption>
 </figure>
 </div>
-<p>The land and water cover variables can be challenging to interpret based on their names alone (e.g.&nbsp;<code>mcd12q1_lccs1_fs_c12_1500_pland</code>); however, these names can be looked up in the <code>ebirdst_predictors</code> data frame from the <code>ebirdst</code> package. For example, let’s look up what <code>mcd12q1_lccs1_fs_c12_1500_pland</code> corresponds to.</p>
+<p>The land and water cover variables can be challenging to interpret based on their names alone (e.g.&nbsp;<code>mcd12q1_lccs1_c12_pland</code>); however, these names can be looked up in the <code>ebirdst_predictors</code> data frame from the <code>ebirdst</code> package. For example, let’s look up what <code>mcd12q1_lccs1_c12_pland</code> corresponds to.</p>
 <div class="cell" data-layout-align="center">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(ebirdst_predictors, predictor <span class="sc">==</span> <span class="st">"mcd12q1_lccs1_c12_pland"</span>) <span class="sc">%&gt;%</span> </span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(predictor, label)</span>
@@ -930,8 +879,8 @@ Tip
 </div>
 </div>
 </div>
-<section id="zero-filling-ebird-data" class="level2" data-number="3.1">
-<h2 data-number="3.1" class="anchored" data-anchor-id="zero-filling-ebird-data"><span class="header-section-number">3.1</span> Zero-filling eBird data</h2>
+<section id="zero-filling-ebird-data" class="level3" data-number="1.2.1">
+<h3 data-number="1.2.1" class="anchored" data-anchor-id="zero-filling-ebird-data"><span class="header-section-number">1.2.1</span> Zero-filling eBird data</h3>
 <p>Complete eBird checklists are extremely valuable because, for all species that weren’t reported, we can infer counts of 0. This allows us to convert eBird from presence only data to detection/non-detection data, which allows for much more robust analyses. Note that we don’t use the term presence/absence data here because a non-detection doesn’t necessarily imply the species was absent, only that observer wasn’t able to detect and identify it.</p>
 <p>We refer to the process of producing detection/non-detection data as “zero-filling” the eBird data because we’re filling in the missing zeros. Let’s consider observations of <a href="https://ebird.org/species/shbcuc1/">Shining Bronze-Cuckoo</a> (species code <code>shbcuc1</code>).</p>
 <div class="cell" data-layout-align="center">
@@ -1006,22 +955,18 @@ Tip
 <span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(bird_sf,</span>
 <span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a>     <span class="at">pch =</span> <span class="dv">19</span>, <span class="at">cex =</span> <span class="fl">0.1</span>, <span class="at">col =</span> scales<span class="sc">::</span><span class="fu">alpha</span>(<span class="st">"#555555"</span>, <span class="dv">4</span>),</span>
 <span id="cb21-36"><a href="#cb21-36" aria-hidden="true" tabindex="-1"></a>     <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Warning in plot.sf(bird_sf, pch = 19, cex = 0.1, col = scales::alpha("#555555",</span></span>
-<span id="cb21-38"><a href="#cb21-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; : ignoring all but the first attribute</span></span>
-<span id="cb21-39"><a href="#cb21-39" aria-hidden="true" tabindex="-1"></a><span class="co"># detection</span></span>
-<span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">filter</span>(bird_sf, obs_detected <span class="sc">==</span> <span class="dv">1</span>),</span>
-<span id="cb21-41"><a href="#cb21-41" aria-hidden="true" tabindex="-1"></a>     <span class="at">pch =</span> <span class="dv">19</span>, <span class="at">cex =</span> <span class="fl">0.3</span>, <span class="at">col =</span> scales<span class="sc">::</span><span class="fu">alpha</span>(<span class="st">"#4daf4a"</span>, <span class="dv">1</span>),</span>
-<span id="cb21-42"><a href="#cb21-42" aria-hidden="true" tabindex="-1"></a>     <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb21-43"><a href="#cb21-43" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Warning in plot.sf(filter(bird_sf, obs_detected == 1), pch = 19, cex = 0.3, :</span></span>
-<span id="cb21-44"><a href="#cb21-44" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ignoring all but the first attribute</span></span>
-<span id="cb21-45"><a href="#cb21-45" aria-hidden="true" tabindex="-1"></a><span class="co"># legend</span></span>
-<span id="cb21-46"><a href="#cb21-46" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"bottomright"</span>, <span class="at">bty =</span> <span class="st">"n"</span>,</span>
-<span id="cb21-47"><a href="#cb21-47" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"#555555"</span>, <span class="st">"#4daf4a"</span>),</span>
-<span id="cb21-48"><a href="#cb21-48" aria-hidden="true" tabindex="-1"></a>       <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"eBird checklists"</span>, <span class="st">"Bird sightings"</span>),</span>
-<span id="cb21-49"><a href="#cb21-49" aria-hidden="true" tabindex="-1"></a>       <span class="at">pch =</span> <span class="dv">19</span>)</span>
-<span id="cb21-50"><a href="#cb21-50" aria-hidden="true" tabindex="-1"></a><span class="fu">box</span>()</span>
-<span id="cb21-51"><a href="#cb21-51" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">new =</span> <span class="cn">TRUE</span>, <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">3</span>, <span class="dv">0</span>))</span>
-<span id="cb21-52"><a href="#cb21-52" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">"Shining Bronze-Cuckoo eBird Observations</span><span class="sc">\n</span><span class="st">November-January 2007-2022"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a><span class="co"># detection</span></span>
+<span id="cb21-38"><a href="#cb21-38" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">filter</span>(bird_sf, obs_detected <span class="sc">==</span> <span class="dv">1</span>),</span>
+<span id="cb21-39"><a href="#cb21-39" aria-hidden="true" tabindex="-1"></a>     <span class="at">pch =</span> <span class="dv">19</span>, <span class="at">cex =</span> <span class="fl">0.3</span>, <span class="at">col =</span> scales<span class="sc">::</span><span class="fu">alpha</span>(<span class="st">"#4daf4a"</span>, <span class="dv">1</span>),</span>
+<span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a>     <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-41"><a href="#cb21-41" aria-hidden="true" tabindex="-1"></a><span class="co"># legend</span></span>
+<span id="cb21-42"><a href="#cb21-42" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"bottomright"</span>, <span class="at">bty =</span> <span class="st">"n"</span>,</span>
+<span id="cb21-43"><a href="#cb21-43" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"#555555"</span>, <span class="st">"#4daf4a"</span>),</span>
+<span id="cb21-44"><a href="#cb21-44" aria-hidden="true" tabindex="-1"></a>       <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"eBird checklists"</span>, <span class="st">"Bird sightings"</span>),</span>
+<span id="cb21-45"><a href="#cb21-45" aria-hidden="true" tabindex="-1"></a>       <span class="at">pch =</span> <span class="dv">19</span>)</span>
+<span id="cb21-46"><a href="#cb21-46" aria-hidden="true" tabindex="-1"></a><span class="fu">box</span>()</span>
+<span id="cb21-47"><a href="#cb21-47" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">new =</span> <span class="cn">TRUE</span>, <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">3</span>, <span class="dv">0</span>))</span>
+<span id="cb21-48"><a href="#cb21-48" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">"Shining Bronze-Cuckoo eBird Observations</span><span class="sc">\n</span><span class="st">November-January 2007-2022"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1044,7 +989,7 @@ Exercise
 </div>
 </div>
 <div class="callout callout-style-default callout-note no-icon callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-13-contents" aria-controls="callout-13" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-12-contents" aria-controls="callout-12" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
@@ -1053,7 +998,7 @@ Solution
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-13" class="callout-13-contents callout-collapse collapse">
+<div id="callout-12" class="callout-12-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>For example, to produce detection/non-detection data for <a href="https://ebird.org/species/maslap1">Masked Lapwing</a> use:</p>
 <div class="cell" data-layout-align="center">
@@ -1079,8 +1024,8 @@ Solution
 </div>
 </div>
 </section>
-<section id="sec-ebird-pred" class="level2" data-number="3.2">
-<h2 data-number="3.2" class="anchored" data-anchor-id="sec-ebird-pred"><span class="header-section-number">3.2</span> Prediction grid</h2>
+<section id="sec-ebird-erd-pred" class="level3" data-number="1.2.2">
+<h3 data-number="1.2.2" class="anchored" data-anchor-id="sec-ebird-erd-pred"><span class="header-section-number">1.2.2</span> Prediction grid</h3>
 <p>The ultimate goal of modeling the occurrence or abundance of a species is frequently to produce a map showing the distribution of that species in space. To do so, we need to know the values of our predictor variables over the region that we intend to make predictions. To make this possible, the ERD is distributed with a <strong>prediction grid</strong>: a regular grid of points covering the entire globe spaced 3km apart for which all the environmental variables have been calculated for the year 2022.</p>
 <p>The data package for this course contains an example subset of the prediction grid. The file <code>data/prediction-grid_year_AU-QLD.parquet</code> contains the environmental variables for each point on the grid and the file <code>data/prediction-grid_template.tif</code> is a 3km by 3km raster template where each each cell center is a point on the prediction grid. Let’s start by examining the environmental variables.</p>
 <div class="cell" data-layout-align="center">
@@ -1249,8 +1194,8 @@ Solution
 </div>
 <p>The map looks distorted because the prediction grid uses a sinusoidal projection, which works well for analysis but not for mapping. In the next lesson, we’ll demonstrate how to project data into a coordinate reference system more suitable for mapping.</p>
 </section>
-<section id="sec-ebird-bias" class="level2" data-number="3.3">
-<h2 data-number="3.3" class="anchored" data-anchor-id="sec-ebird-bias"><span class="header-section-number">3.3</span> Spatial and temporal bias</h2>
+<section id="sec-ebird-erd-bias" class="level3" data-number="1.2.3">
+<h3 data-number="1.2.3" class="anchored" data-anchor-id="sec-ebird-erd-bias"><span class="header-section-number">1.2.3</span> Spatial and temporal bias</h3>
 <p>Despite the strengths of eBird data, species observations collected through citizen science projects exhibit both spatial and temporal bias requiring special care when using them for rigorous analyses. <strong>Spatial bias</strong> occurs because eBird participants are more likely to be collect data near their homes, in easily accessible areas such as roadsides, or in areas known to be good for birding. Looking at the above map of bird observations it’s clear that the eBird checklists are clustered around cities and roads. <strong>Temporal bias</strong> occurs because participants preferentially collect data when they are available, such as weekends, and at times of year when they expect to observe more birds, notably during the breeding season. We can plot the distribution of checklists over the days of the year to see this bias:</p>
 <div class="cell" data-layout-align="center">
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>checklist_per_day <span class="ot">&lt;-</span> checklists <span class="sc">%&gt;%</span> </span>
@@ -1317,13 +1262,13 @@ Solution
 <span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(bird_zf)</span>
 <span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 90620</span></span>
 <span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(bird_sampled)</span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 33159</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 33256</span></span>
 <span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="co"># how has prevalence changed</span></span>
 <span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(bird_zf<span class="sc">$</span>obs_detected)</span>
 <span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.0275</span></span>
 <span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(bird_sampled<span class="sc">$</span>obs_detected)</span>
-<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.0435</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.0432</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>So, after sampling, we’re left with 37% of the observations we started with, but the spatial and temporal bias has been significantly reduced.</p>
 <p>We now have the data and tools necessary to model relative abundance using eBird data, which will be the focus of <a href="abundance.html">Lesson&nbsp;<span>2</span></a>.</p>
