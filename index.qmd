@@ -54,8 +54,8 @@ unzip("data.zip")
 
 During the workshop we'll work through the lessons on this website, writing code together in real time; however, it will be useful to have script templates to work from. Open RStudio, then:
 
-1. Create a script named "ebird-data.R", visit [this link](https://raw.githubusercontent.com/ebird/ebirdst-one-day-rel-abd-workshop/main/scripts/ebird-data.R), and copy the contents into the script you just created.
-2. Create a script named "ebird-rel-abd.R", visit [this link](https://raw.githubusercontent.com/ebird/ebirdst-one-day-rel-abd-workshop/main/scripts/ebird-rel-abd.R), and copy the contents into the script you just created.
+1. Create a script named "ebird-data.R", visit [this link](https://raw.githubusercontent.com/ebird/ebird-one-day-rel-abd-workshop/main/scripts/ebird-data.R), and copy the contents into the script you just created.
+2. Create a script named "ebird-rel-abd.R", visit [this link](https://raw.githubusercontent.com/ebird/ebird-one-day-rel-abd-workshop/main/scripts/ebird-rel-abd.R), and copy the contents into the script you just created.
 
 
 ## Tidyverse {#sec-intro-tidyverse}
