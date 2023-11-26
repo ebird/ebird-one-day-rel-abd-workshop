@@ -124,19 +124,31 @@ calculate_pd <- function(predictor, model, data,
 
 # calculate for top variables
 
-# plot
-# plot
-ggplot(pd) +
-  aes(x = x, y = encounter_rate) +
-  geom_line() +
-  geom_point() +
-  facet_wrap(~ as_factor(predictor), ncol = 2, scales = "free") +
-  labs(x = NULL, y = "Encounter Rate") +
-  theme_minimal() +
+# plot top 10 predictors for encounter rate model
+ggplot(head(pi_er, 10)) +
+  aes(x = fct_reorder(predictor, importance), y = importance) +
+  geom_col() +
+  geom_hline(yintercept = 0, linewidth = 2, colour = "#555555") +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_flip() +
+  labs(x = NULL,
+       y = "Predictor Importance (Gini Index)") +
   theme_minimal() +
   theme(panel.grid = element_blank(),
-        axis.line = element_line(color = "grey60"),
-        axis.ticks  = element_line(color = "grey60"))
+        panel.grid.major.x = element_line(colour = "#cccccc", linewidth = 0.5))
+
+# plot top 10 predictors for count model
+ggplot(head(pi_count, 10)) +
+  aes(x = fct_reorder(predictor, importance), y = importance) +
+  geom_col() +
+  geom_hline(yintercept = 0, linewidth = 2, colour = "#555555") +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_flip() +
+  labs(x = NULL,
+       y = "Predictor Importance (Gini Index)") +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        panel.grid.major.x = element_line(colour = "#cccccc", linewidth = 0.5))
 
 # Prediction ---
 

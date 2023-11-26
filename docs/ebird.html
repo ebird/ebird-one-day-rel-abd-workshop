@@ -225,7 +225,7 @@ Tip
 <p>The eBird database contains a massive amount of data! When requesting eBird data to download it’s important to narrow the request to as small a subset of the data as possible. For example, if we request all Shining Bronze-Cuckoo observations globally, the dataset may be too large to work with in R. Instead, we’ve only requested data for a single state in Australia.</p>
 </div>
 </div>
-<p>Once the data are ready, you will receive an email with a download link. The downloaded data will be in a compressed .zip format, and should be unarchived. The resulting directory will contain a two text files: one for the EBD (e.g.&nbsp;<code>ebd_BR-RS_fotfly_smp_relJun-2023.txt</code>) containing all the Shining Bronze-Cuckoo observations from Queensland, and one for the SED (e.g.&nbsp;<code>ebd_BR-RS_fotfly_smp_relJun-2023_sampling.txt</code>) containing all checklists from Queensland, The <code>relJune-2023</code> component of the file name describes which version of the EBD this dataset came from; in this case it’s the June 2023 release.</p>
+<p>Once the data are ready, you will receive an email with a download link. The downloaded data will be in a compressed .zip format, and should be unarchived. The resulting directory will contain a two text files: one for the EBD (e.g.&nbsp;<code>ebd_AU-QLD_shbcuc1_smp_relSep-2023.txt</code>) containing all the Shining Bronze-Cuckoo observations from Queensland, and one for the SED (e.g.&nbsp;<code>ebd_AU-QLD_shbcuc1_smp_relSep-2023_sampking.txt</code>) containing all checklists from Queensland, The <code>relSep-2023</code> component of the file name describes which version of the EBD this dataset came from; in this case it’s the September 2023 release.</p>
 <p>If you would prefer to directly download the exact dataset used in this workshop, download the <a href="./index.html#sec-intro-data">data package for this workshop</a>.</p>
 </section>
 <section id="sec-ebird-ebd-import" class="level3" data-number="1.1.2">
@@ -1262,13 +1262,13 @@ Solution
 <span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(bird_zf)</span>
 <span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 90620</span></span>
 <span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(bird_sampled)</span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 33078</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 33265</span></span>
 <span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="co"># how has prevalence changed</span></span>
 <span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(bird_zf<span class="sc">$</span>obs_detected)</span>
 <span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.0275</span></span>
 <span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(bird_sampled<span class="sc">$</span>obs_detected)</span>
-<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.044</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.0435</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>So, after sampling, we’re left with 37% of the observations we started with, but the spatial and temporal bias has been significantly reduced.</p>
 <p>We now have the data and tools necessary to model relative abundance using eBird data, which will be the focus of <a href="abundance.html">Lesson&nbsp;<span>2</span></a>.</p>

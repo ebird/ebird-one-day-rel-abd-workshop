@@ -623,7 +623,7 @@ Checkpoint
 <p>From the random forest model, we can glean two important sources of information about the association between species detection and features of their local environment. First, <strong>predictor importance</strong> is a measure of the predictive power of each variable used as a predictor in the model, and is calculated as a byproduct of fitting a random forests model. Second, <strong>partial dependence</strong> estimates the marginal effect of one predictor holding all other predictors constant.</p>
 <section id="sec-abundance-habitat-pi" class="level3" data-number="2.3.1">
 <h3 data-number="2.3.1" class="anchored" data-anchor-id="sec-abundance-habitat-pi"><span class="header-section-number">2.3.1</span> Predictor importance</h3>
-<p>During the process of training a random forests model, some variables are removed at each node of the trees that make up the random forests. <strong>Predictor importance</strong> is based on the mean decrease in accuracy of the model when a given predictor is not used. It’s technically an average <a href="https://en.wikipedia.org/wiki/Gini_coefficient">Gini index</a>, but essentially larger values indicate that a predictor is more important to the model.</p>
+<p>During the process of training a random forests model, some variables are removed at each node of the trees that make up the random forests. <strong>Predictor importance</strong> is based on the mean decrease in accuracy of the model when a given predictor is not used. It’s technically an average <a href="https://en.wikipedia.org/wiki/Gini_coefficient">Gini index</a>, but essentially larger values indicate that a predictor is more important to the model. First, we can look at the predictor importances for the encounter rate model.</p>
 <div class="cell" data-layout-align="center">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>pi_er <span class="ot">&lt;-</span> er_model<span class="sc">$</span>variable.importance</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>pi_er <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">predictor =</span> <span class="fu">names</span>(pi_er), <span class="at">importance =</span> <span class="fu">unname</span>(pi_er)) <span class="sc">%&gt;%</span> </span>
@@ -639,39 +639,41 @@ Checkpoint
 <span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Predictor Importance (Gini Index)"</span>) <span class="sc">+</span></span>
 <span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
 <span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">panel.grid =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.grid.major.x =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="st">"#cccccc"</span>, <span class="at">linewidth =</span> <span class="fl">0.5</span>))</span>
-<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>count_er <span class="ot">&lt;-</span> count_model<span class="sc">$</span>variable.importance</span>
-<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>count_er <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">predictor =</span> <span class="fu">names</span>(count_er), <span class="at">importance =</span> <span class="fu">unname</span>(count_er)) <span class="sc">%&gt;%</span> </span>
-<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(importance))</span>
-<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a><span class="co"># plot top 10 predictors</span></span>
-<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="fu">head</span>(count_er, <span class="dv">10</span>)) <span class="sc">+</span> </span>
-<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">fct_reorder</span>(predictor, importance), <span class="at">y =</span> importance) <span class="sc">+</span></span>
-<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>() <span class="sc">+</span></span>
-<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linewidth =</span> <span class="dv">2</span>, <span class="at">colour =</span> <span class="st">"#555555"</span>) <span class="sc">+</span></span>
-<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">expand =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>)) <span class="sc">+</span></span>
-<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_flip</span>() <span class="sc">+</span></span>
-<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, </span>
-<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Predictor Importance (Gini Index)"</span>) <span class="sc">+</span></span>
-<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">panel.grid =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.grid.major.x =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="st">"#cccccc"</span>, <span class="at">linewidth =</span> <span class="fl">0.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.grid.major.x =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="st">"#cccccc"</span>, <span class="at">linewidth =</span> <span class="fl">0.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="abundance_files/figure-html/abundance-habitat-pi-1.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="abundance_files/figure-html/abundance-habitat-pi-2.png" class="img-fluid figure-img"></p>
+<p><img src="abundance_files/figure-html/abundance-habitat-pi-er-1.png" class="img-fluid figure-img"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>The most important predictors of detection/non-detection are often effort variables. Indeed, that’s the case here: checklist duration, distance traveled, and time of day (<code>solar_noon_diff</code>) all appear in the top 5 predictors. This is not surprising: going out at the right time of day and expending more effort searching will lead to a higher probability of detecting Wood Thrush. Focusing on the habitat variables, both elevation and slope variables have high importance, and the top habitat variables are from evergreen broadleaf forest and open forest. Note however, that high importance doesn’t tell us the direction of the relationship with detection, for that we’ll have to look at partial dependence plots.</p>
+<p>Second, we can look at the predictor importances for the count model.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>pi_count <span class="ot">&lt;-</span> count_model<span class="sc">$</span>variable.importance</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>pi_count <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">predictor =</span> <span class="fu">names</span>(pi_count), <span class="at">importance =</span> <span class="fu">unname</span>(pi_count)) <span class="sc">%&gt;%</span> </span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(importance))</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co"># plot top 10 predictors</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="fu">head</span>(pi_count, <span class="dv">10</span>)) <span class="sc">+</span> </span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">fct_reorder</span>(predictor, importance), <span class="at">y =</span> importance) <span class="sc">+</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>() <span class="sc">+</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linewidth =</span> <span class="dv">2</span>, <span class="at">colour =</span> <span class="st">"#555555"</span>) <span class="sc">+</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">expand =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>)) <span class="sc">+</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_flip</span>() <span class="sc">+</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, </span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Predictor Importance (Gini Index)"</span>) <span class="sc">+</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">panel.grid =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.grid.major.x =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="st">"#cccccc"</span>, <span class="at">linewidth =</span> <span class="fl">0.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="abundance_files/figure-html/abundance-habitat-pi-count-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The most important predictors of detection/non-detection are often effort variables. Indeed, that’s the case here: checklist duration, distance traveled, and time of day (<code>solar_noon_diff</code>) all appear in the top 5 predictors. This is not surprising: going out at the right time of day and expending more effort searching will lead to a higher probability of detecting most birds. Focusing on the habitat variables, evergreen broadleaf forest and open forest are in the top 10. Note however, that high importance doesn’t tell us the direction of the relationship with detection, for that we’ll have to look at partial dependence plots.</p>
 <div class="callout callout-style-default callout-caution no-icon callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -698,25 +700,25 @@ Solution
 <div id="callout-3" class="callout-3-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(ebirdst_predictors, </span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>       predictor <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"mcd12q1_lccs1_c12_pland"</span>,</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"ntl_mean"</span>,</span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"mcd12q1_lccs1_c31_pland"</span>)) <span class="sc">%&gt;%</span> </span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(predictor, label)</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 2</span></span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   predictor               label                                </span></span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                   &lt;chr&gt;                                </span></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 ntl_mean                Nighttime Lights (Mean)              </span></span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2 mcd12q1_lccs1_c12_pland Evergreen Broadleaf Forests (% cover)</span></span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3 mcd12q1_lccs1_c31_pland Unclassified (% cover)</span></span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(ebirdst_predictor_descriptions)</span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Rows: 37</span></span>
-<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: 4</span></span>
-<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ dataset     &lt;chr&gt; "ebird", "ebird", "ebird", "ebird", "ebird", "ebird", "ebi…</span></span>
-<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ predictor   &lt;chr&gt; "longitude", "latitude", "year", "day_of_year", "solar_noo…</span></span>
-<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ description &lt;chr&gt; "Longitude assigned to checklist. Locations are assigned u…</span></span>
-<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ reference   &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, "https://doi.org/1…</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(ebirdst_predictors, </span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>       predictor <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"mcd12q1_lccs1_c12_pland"</span>,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"ntl_mean"</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"mcd12q1_lccs1_c31_pland"</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(predictor, label)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 2</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   predictor               label                                </span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                   &lt;chr&gt;                                </span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 ntl_mean                Nighttime Lights (Mean)              </span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2 mcd12q1_lccs1_c12_pland Evergreen Broadleaf Forests (% cover)</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3 mcd12q1_lccs1_c31_pland Unclassified (% cover)</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(ebirdst_predictor_descriptions)</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Rows: 37</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Columns: 4</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ dataset     &lt;chr&gt; "ebird", "ebird", "ebird", "ebird", "ebird", "ebird", "ebi…</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ predictor   &lt;chr&gt; "longitude", "latitude", "year", "day_of_year", "solar_noo…</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ description &lt;chr&gt; "Longitude assigned to checklist. Locations are assigned u…</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $ reference   &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, "https://doi.org/1…</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -735,75 +737,75 @@ Solution
 <li><code>n</code>: number of points to subsample from the training data</li>
 </ul>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># function to calculate partial dependence for a single predictor</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>calculate_pd <span class="ot">&lt;-</span> <span class="cf">function</span>(predictor, er_model, count_model, cal_model, data, </span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                         <span class="at">x_res =</span> <span class="dv">25</span>, <span class="at">n =</span> <span class="dv">1000</span>) {</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># create prediction grid using quantiles</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  x_grid <span class="ot">&lt;-</span> <span class="fu">quantile</span>(data[[predictor]],</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>                     <span class="at">probs =</span> <span class="fu">seq</span>(<span class="at">from =</span> <span class="dv">0</span>, <span class="at">to =</span> <span class="dv">1</span>, <span class="at">length =</span> x_res),</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>                     <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># remove duplicates</span></span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  x_grid <span class="ot">&lt;-</span> x_grid[<span class="sc">!</span><span class="fu">duplicated</span>(<span class="fu">signif</span>(x_grid, <span class="dv">8</span>))]</span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  x_grid <span class="ot">&lt;-</span> <span class="fu">unname</span>(<span class="fu">unique</span>(x_grid))</span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>  grid <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">predictor =</span> predictor, <span class="at">x =</span> x_grid)</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(grid) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"predictor"</span>, predictor)</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># subsample training data</span></span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">min</span>(n, <span class="fu">nrow</span>(data))</span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>  data <span class="ot">&lt;-</span> data[<span class="fu">sample</span>(<span class="fu">seq.int</span>(<span class="fu">nrow</span>(data)), <span class="at">size =</span> n, <span class="at">replace =</span> <span class="cn">FALSE</span>), ]</span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># drop focal predictor from data</span></span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>  data <span class="ot">&lt;-</span> data[<span class="fu">names</span>(data) <span class="sc">!=</span> predictor]</span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>  grid <span class="ot">&lt;-</span> <span class="fu">merge</span>(grid, data, <span class="at">all =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># predict</span></span>
-<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>  p_er <span class="ot">&lt;-</span> <span class="fu">predict</span>(er_model, <span class="at">data =</span> grid)</span>
-<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>  grid<span class="sc">$</span>predicted_er <span class="ot">&lt;-</span> p_er<span class="sc">$</span>predictions[, <span class="dv">2</span>]</span>
-<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>  p_count <span class="ot">&lt;-</span> <span class="fu">predict</span>(count_model, <span class="at">data =</span> grid)</span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>  <span class="co"># summarize</span></span>
-<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>  pd <span class="ot">&lt;-</span> grid[, <span class="fu">c</span>(<span class="st">"predictor"</span>, predictor)]</span>
-<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(pd) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"predictor"</span>, <span class="st">"x"</span>)</span>
-<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>  pd<span class="sc">$</span>encounter_rate <span class="ot">&lt;-</span> p_er<span class="sc">$</span>predictions[, <span class="dv">2</span>]</span>
-<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>  pd<span class="sc">$</span>count <span class="ot">&lt;-</span> p_count<span class="sc">$</span>predictions</span>
-<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>  er_cal <span class="ot">&lt;-</span> stats<span class="sc">::</span><span class="fu">predict</span>(cal_model, <span class="at">newdata =</span> <span class="fu">tibble</span>(<span class="at">pred =</span> pd<span class="sc">$</span>encounter_rate), </span>
-<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>                       <span class="at">type =</span> <span class="st">"response"</span>)</span>
-<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a>  er_cal[er_cal <span class="sc">&lt;</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
-<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>  er_cal[er_cal <span class="sc">&gt;</span> <span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
-<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>  pd<span class="sc">$</span>er_cal <span class="ot">&lt;-</span> er_cal</span>
-<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>  pd<span class="sc">$</span>relative_abundance <span class="ot">&lt;-</span> pd<span class="sc">$</span>er_cal <span class="sc">*</span> pd<span class="sc">$</span>count</span>
-<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a>  pd <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">group_by</span>(pd, predictor, x) <span class="sc">%&gt;%</span> </span>
-<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">summarise</span>(<span class="at">relative_abundance =</span> <span class="fu">mean</span>(relative_abundance, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a>                     <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
-<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(pd)</span>
-<span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># function to calculate partial dependence for a single predictor</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>calculate_pd <span class="ot">&lt;-</span> <span class="cf">function</span>(predictor, er_model, count_model, cal_model, data, </span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>                         <span class="at">x_res =</span> <span class="dv">25</span>, <span class="at">n =</span> <span class="dv">1000</span>) {</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># create prediction grid using quantiles</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  x_grid <span class="ot">&lt;-</span> <span class="fu">quantile</span>(data[[predictor]],</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>                     <span class="at">probs =</span> <span class="fu">seq</span>(<span class="at">from =</span> <span class="dv">0</span>, <span class="at">to =</span> <span class="dv">1</span>, <span class="at">length =</span> x_res),</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>                     <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># remove duplicates</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  x_grid <span class="ot">&lt;-</span> x_grid[<span class="sc">!</span><span class="fu">duplicated</span>(<span class="fu">signif</span>(x_grid, <span class="dv">8</span>))]</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>  x_grid <span class="ot">&lt;-</span> <span class="fu">unname</span>(<span class="fu">unique</span>(x_grid))</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  grid <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">predictor =</span> predictor, <span class="at">x =</span> x_grid)</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(grid) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"predictor"</span>, predictor)</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># subsample training data</span></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">min</span>(n, <span class="fu">nrow</span>(data))</span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>  data <span class="ot">&lt;-</span> data[<span class="fu">sample</span>(<span class="fu">seq.int</span>(<span class="fu">nrow</span>(data)), <span class="at">size =</span> n, <span class="at">replace =</span> <span class="cn">FALSE</span>), ]</span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># drop focal predictor from data</span></span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>  data <span class="ot">&lt;-</span> data[<span class="fu">names</span>(data) <span class="sc">!=</span> predictor]</span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>  grid <span class="ot">&lt;-</span> <span class="fu">merge</span>(grid, data, <span class="at">all =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># predict</span></span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>  p_er <span class="ot">&lt;-</span> <span class="fu">predict</span>(er_model, <span class="at">data =</span> grid)</span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>  grid<span class="sc">$</span>predicted_er <span class="ot">&lt;-</span> p_er<span class="sc">$</span>predictions[, <span class="dv">2</span>]</span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>  p_count <span class="ot">&lt;-</span> <span class="fu">predict</span>(count_model, <span class="at">data =</span> grid)</span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>  <span class="co"># summarize</span></span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>  pd <span class="ot">&lt;-</span> grid[, <span class="fu">c</span>(<span class="st">"predictor"</span>, predictor)]</span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(pd) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"predictor"</span>, <span class="st">"x"</span>)</span>
+<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>  pd<span class="sc">$</span>encounter_rate <span class="ot">&lt;-</span> p_er<span class="sc">$</span>predictions[, <span class="dv">2</span>]</span>
+<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a>  pd<span class="sc">$</span>count <span class="ot">&lt;-</span> p_count<span class="sc">$</span>predictions</span>
+<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a>  er_cal <span class="ot">&lt;-</span> stats<span class="sc">::</span><span class="fu">predict</span>(cal_model, <span class="at">newdata =</span> <span class="fu">tibble</span>(<span class="at">pred =</span> pd<span class="sc">$</span>encounter_rate), </span>
+<span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a>                       <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a>  er_cal[er_cal <span class="sc">&lt;</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb21-36"><a href="#cb21-36" aria-hidden="true" tabindex="-1"></a>  er_cal[er_cal <span class="sc">&gt;</span> <span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a>  pd<span class="sc">$</span>er_cal <span class="ot">&lt;-</span> er_cal</span>
+<span id="cb21-38"><a href="#cb21-38" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-39"><a href="#cb21-39" aria-hidden="true" tabindex="-1"></a>  pd<span class="sc">$</span>relative_abundance <span class="ot">&lt;-</span> pd<span class="sc">$</span>er_cal <span class="sc">*</span> pd<span class="sc">$</span>count</span>
+<span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a>  pd <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">group_by</span>(pd, predictor, x) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-41"><a href="#cb21-41" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">summarise</span>(<span class="at">relative_abundance =</span> <span class="fu">mean</span>(relative_abundance, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb21-42"><a href="#cb21-42" aria-hidden="true" tabindex="-1"></a>                     <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
+<span id="cb21-43"><a href="#cb21-43" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb21-44"><a href="#cb21-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(pd)</span>
+<span id="cb21-45"><a href="#cb21-45" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>Now we’ll use this function to calculate partial dependence for the top 9 predictor variables.</p>
+<p>Now we’ll use this function to calculate partial dependence for the top six predictor variables.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate partial dependence for each predictor</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co"># map is used to iteratively apply calculate_pd to each predictor</span></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>pd <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (predictor <span class="cf">in</span> <span class="fu">head</span>(pi_er<span class="sc">$</span>predictor)) {</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  pd <span class="ot">&lt;-</span> <span class="fu">calculate_pd</span>(predictor, <span class="at">er_model =</span> er_model, <span class="at">count_model =</span> count_model, </span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>                     <span class="at">cal_model =</span> calibration_model, <span class="at">data =</span> checklists_train) <span class="sc">%&gt;%</span> </span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>(pd, .)</span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a><span class="co"># plot</span></span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pd) <span class="sc">+</span></span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> relative_abundance) <span class="sc">+</span></span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
-<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
-<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> <span class="fu">as_factor</span>(predictor), <span class="at">ncol =</span> <span class="dv">2</span>, <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
-<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="st">"Relative Abundnace"</span>) <span class="sc">+</span></span>
-<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">panel.grid =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.line =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"grey60"</span>),</span>
-<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks  =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"grey60"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate partial dependence for each predictor</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co"># map is used to iteratively apply calculate_pd to each predictor</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>pd <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (predictor <span class="cf">in</span> <span class="fu">head</span>(pi_er<span class="sc">$</span>predictor)) {</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  pd <span class="ot">&lt;-</span> <span class="fu">calculate_pd</span>(predictor, <span class="at">er_model =</span> er_model, <span class="at">count_model =</span> count_model, </span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>                     <span class="at">cal_model =</span> calibration_model, <span class="at">data =</span> checklists_train) <span class="sc">%&gt;%</span> </span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>(pd, .)</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="co"># plot</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pd) <span class="sc">+</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> relative_abundance) <span class="sc">+</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> <span class="fu">as_factor</span>(predictor), <span class="at">ncol =</span> <span class="dv">2</span>, <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="st">"Relative Abundnace"</span>) <span class="sc">+</span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">panel.grid =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.line =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"grey60"</span>),</span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks  =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"grey60"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -831,48 +833,48 @@ Checkpoint
 <h2 data-number="2.4" class="anchored" data-anchor-id="sec-abundance-predict"><span class="header-section-number">2.4</span> Prediction</h2>
 <p>Using the prediction grid described in <a href="ebird.html#sec-ebird-erd-pred"><span>Section&nbsp;1.2.2</span></a>, we can estimate relative abundance over our entire study area. First we estimate encounter rate and count, then we multiply these together to get an estimate of relative abundance. Let’s read in the prediction grid and subset to just the region we’re focusing on.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>pred_grid_year <span class="ot">&lt;-</span> <span class="fu">read_parquet</span>(<span class="st">"data/prediction-grid_year_AU-QLD_2022.parquet"</span>)</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>pred_grid_evi <span class="ot">&lt;-</span> <span class="fu">read_parquet</span>(<span class="st">"data/prediction-grid_week_AU-QLD_2022.parquet"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(day_of_year <span class="sc">==</span> <span class="dv">347</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(srd_id, evi_median, evi_sd)</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>pred_grid_all <span class="ot">&lt;-</span> pred_grid_year <span class="sc">%&gt;%</span></span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(pred_grid_evi, <span class="at">by =</span> <span class="st">"srd_id"</span>)</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>raster_template <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="st">"data/prediction-grid_template.tif"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># crop raster to study region</span></span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">crop</span>(<span class="fu">st_transform</span>(study_region, <span class="at">crs =</span> <span class="fu">crs</span>(.)))</span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a><span class="co"># subset to the three regions we're focusing on</span></span>
-<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>in_region <span class="ot">&lt;-</span> pred_grid_all <span class="sc">%&gt;%</span></span>
-<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(srd_id, latitude, longitude) <span class="sc">%&gt;%</span></span>
-<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"longitude"</span>, <span class="st">"latitude"</span>), <span class="at">crs =</span> <span class="dv">4326</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_join</span>(study_region, <span class="at">left =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>()</span>
-<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>pred_grid <span class="ot">&lt;-</span> <span class="fu">semi_join</span>(pred_grid_all, in_region, <span class="at">by =</span> <span class="st">"srd_id"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>pred_grid_year <span class="ot">&lt;-</span> <span class="fu">read_parquet</span>(<span class="st">"data/prediction-grid_year_AU-QLD_2022.parquet"</span>)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>pred_grid_evi <span class="ot">&lt;-</span> <span class="fu">read_parquet</span>(<span class="st">"data/prediction-grid_week_AU-QLD_2022.parquet"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(day_of_year <span class="sc">==</span> <span class="dv">347</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(srd_id, evi_median, evi_sd)</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>pred_grid_all <span class="ot">&lt;-</span> pred_grid_year <span class="sc">%&gt;%</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(pred_grid_evi, <span class="at">by =</span> <span class="st">"srd_id"</span>)</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>raster_template <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="st">"data/prediction-grid_template.tif"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># crop raster to study region</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">crop</span>(<span class="fu">st_transform</span>(study_region, <span class="at">crs =</span> <span class="fu">crs</span>(.)))</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="co"># subset to the three regions we're focusing on</span></span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>in_region <span class="ot">&lt;-</span> pred_grid_all <span class="sc">%&gt;%</span></span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(srd_id, latitude, longitude) <span class="sc">%&gt;%</span></span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"longitude"</span>, <span class="st">"latitude"</span>), <span class="at">crs =</span> <span class="dv">4326</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_join</span>(study_region, <span class="at">left =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>()</span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>pred_grid <span class="ot">&lt;-</span> <span class="fu">semi_join</span>(pred_grid_all, in_region, <span class="at">by =</span> <span class="st">"srd_id"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>The prediction grid only includes values for the environmental variables, so to make predictions we’ll need to add effort variables to this prediction grid. We’ll make predictions for a <strong>standard eBird checklist</strong>: a 2 km, 1 hour traveling count at the peak time of day for detecting this species. Finally, we’ll make these predictions for December 15, 2022, the middle of our November-January focal window for the latest year for which we have eBird data.</p>
 <p>To find the time of day with the highest detection probability, we can look for the peak of the partial dependence plot.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate a partial dependence plot for solar noon diff</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>pd_time <span class="ot">&lt;-</span> <span class="fu">calculate_pd</span>(<span class="st">"solar_noon_diff"</span>,</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">er_model =</span> er_model,</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">count_model =</span> count_model,</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>                        <span class="at">cal_model =</span> calibration_model,</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>                        <span class="at">data =</span> checklists_train) <span class="sc">%&gt;%</span> </span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">solar_noon_diff =</span> x, relative_abundance)</span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="co"># partial dependence plot</span></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pd_time) <span class="sc">+</span></span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> solar_noon_diff, <span class="at">y =</span> relative_abundance) <span class="sc">+</span></span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">12</span>, <span class="dv">13</span>, <span class="at">by =</span> <span class="dv">3</span>)) <span class="sc">+</span></span>
-<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Difference from solar noon"</span>,</span>
-<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Relative Abundance"</span>,</span>
-<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Partial dependence"</span>) <span class="sc">+</span></span>
-<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate a partial dependence plot for solar noon diff</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>pd_time <span class="ot">&lt;-</span> <span class="fu">calculate_pd</span>(<span class="st">"solar_noon_diff"</span>,</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">er_model =</span> er_model,</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">count_model =</span> count_model,</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>                        <span class="at">cal_model =</span> calibration_model,</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>                        <span class="at">data =</span> checklists_train) <span class="sc">%&gt;%</span> </span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">solar_noon_diff =</span> x, relative_abundance)</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="co"># partial dependence plot</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pd_time) <span class="sc">+</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> solar_noon_diff, <span class="at">y =</span> relative_abundance) <span class="sc">+</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">12</span>, <span class="dv">13</span>, <span class="at">by =</span> <span class="dv">3</span>)) <span class="sc">+</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Difference from solar noon"</span>,</span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Relative Abundance"</span>,</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Partial dependence"</span>) <span class="sc">+</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -881,26 +883,26 @@ Checkpoint
 </div>
 </div>
 </div>
-<p>Based on the above plot, it appears that about 5 hours before solar noon is the optimal time. We could stop here and set our prediction values to fixed units, but there is significant value in defining these prediction units differently for our estimates of range boundary. Think of this as two different searches. First, a search goes out for as long (time and distance) as it takes to detect the species in all places (maximized detection). Then a separate search goes out for a standardized amount of duration and distance. In this way, we get the best range boundary possible combined with standardized estimates of encounter rate, count, and relative abundance within that range boundary. To maximize the effort units for predicting the range boundary, we’ll need to look at the peaks of the partials for these predictors as well.</p>
+<p>Based on the above plot, it appears that about 5 hours before solar noon is the optimal time. We could stop here and set the rest of our prediction values to fixed units, but there is significant value in defining these prediction units differently for our estimates of range boundary (presence/absence). Think of this as two different searches. First, a search goes out for as long (time and distance) as it takes to detect the species in all places (maximized detection). Then a separate search goes out for a standardized amount of duration and distance. In this way, we get the best range boundary possible combined with standardized estimates of encounter rate, count, and relative abundance within that range boundary. To maximize the effort units for predicting the range boundary, we’ll need to look at the peaks of the partials for these predictors as well.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate a partial dependence plot for effort_hrs</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>pd_hrs <span class="ot">&lt;-</span> <span class="fu">calculate_pd</span>(<span class="st">"effort_hrs"</span>,</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">er_model =</span> er_model,</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">count_model =</span> count_model,</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>                        <span class="at">cal_model =</span> calibration_model,</span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>                        <span class="at">data =</span> checklists_train) <span class="sc">%&gt;%</span> </span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">effort_hrs =</span> x, relative_abundance)</span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="co"># partial dependence plot</span></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pd_hrs) <span class="sc">+</span></span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> effort_hrs, <span class="at">y =</span> relative_abundance) <span class="sc">+</span></span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">6</span>, <span class="at">by =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
-<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Effort Hours"</span>,</span>
-<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Relative Abundance"</span>,</span>
-<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Partial dependence"</span>) <span class="sc">+</span></span>
-<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate a partial dependence plot for effort_hrs</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>pd_hrs <span class="ot">&lt;-</span> <span class="fu">calculate_pd</span>(<span class="st">"effort_hrs"</span>,</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">er_model =</span> er_model,</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">count_model =</span> count_model,</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>                        <span class="at">cal_model =</span> calibration_model,</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>                        <span class="at">data =</span> checklists_train) <span class="sc">%&gt;%</span> </span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">effort_hrs =</span> x, relative_abundance)</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="co"># partial dependence plot</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pd_hrs) <span class="sc">+</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> effort_hrs, <span class="at">y =</span> relative_abundance) <span class="sc">+</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">6</span>, <span class="at">by =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Effort Hours"</span>,</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Relative Abundance"</span>,</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Partial dependence"</span>) <span class="sc">+</span></span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -911,24 +913,24 @@ Checkpoint
 </div>
 <p>Here we see a slope that doesn’t stop asymptoting until we get to 6 hours. However, that value of six hours is the last quantile and represents potential extrapolation territory, so we’ll chose the second to last quantile (which isn’t that different) at 3.5 hours.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate a partial dependence plot for effort_distance_km</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>pd_km <span class="ot">&lt;-</span> <span class="fu">calculate_pd</span>(<span class="st">"effort_distance_km"</span>,</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">er_model =</span> er_model,</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">count_model =</span> count_model,</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>                        <span class="at">cal_model =</span> calibration_model,</span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>                        <span class="at">data =</span> checklists_train) <span class="sc">%&gt;%</span> </span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">effort_distance_km =</span> x, relative_abundance)</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="co"># partial dependence plot</span></span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pd_km) <span class="sc">+</span></span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> effort_distance_km, <span class="at">y =</span> relative_abundance) <span class="sc">+</span></span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
-<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
-<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">10</span>, <span class="at">by =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
-<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Effort Distance (km)"</span>,</span>
-<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Relative Abundance"</span>,</span>
-<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Partial dependence"</span>) <span class="sc">+</span></span>
-<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate a partial dependence plot for effort_distance_km</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>pd_km <span class="ot">&lt;-</span> <span class="fu">calculate_pd</span>(<span class="st">"effort_distance_km"</span>,</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">er_model =</span> er_model,</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">count_model =</span> count_model,</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>                        <span class="at">cal_model =</span> calibration_model,</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>                        <span class="at">data =</span> checklists_train) <span class="sc">%&gt;%</span> </span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">effort_distance_km =</span> x, relative_abundance)</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="co"># partial dependence plot</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pd_km) <span class="sc">+</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> effort_distance_km, <span class="at">y =</span> relative_abundance) <span class="sc">+</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">10</span>, <span class="at">by =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Effort Distance (km)"</span>,</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Relative Abundance"</span>,</span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Partial dependence"</span>) <span class="sc">+</span></span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -939,26 +941,26 @@ Checkpoint
 </div>
 <p>Again, here the last quantile value is way out at 10 and could generate extrapolation, so we’ll choose 5.5 km, the next quantile value. We also need to remember that we have <code>effort_speed_kmph</code> as a predictor in the model. Let’s generate a partial for this, to see if 5.5 km / 3.5 hours produces a reasonable value.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate a partial dependence plot for rate</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>pd_km <span class="ot">&lt;-</span> <span class="fu">calculate_pd</span>(<span class="st">"effort_speed_kmph"</span>,</span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">er_model =</span> er_model,</span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">count_model =</span> count_model,</span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>                        <span class="at">cal_model =</span> calibration_model,</span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>                        <span class="at">data =</span> checklists_train) <span class="sc">%&gt;%</span> </span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">effort_speed_kmph =</span> x, relative_abundance)</span>
-<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="co"># partial dependence plot</span></span>
-<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pd_km) <span class="sc">+</span></span>
-<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> effort_speed_kmph, <span class="at">y =</span> relative_abundance) <span class="sc">+</span></span>
-<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
-<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
-<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">5.5</span> <span class="sc">/</span> <span class="fl">3.5</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
-<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">#scale_x_continuous(breaks = seq(0, 6, by = 1)) +</span></span>
-<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlim</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">5</span>)) <span class="sc">+</span></span>
-<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Effort Speed (km/h))"</span>,</span>
-<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Relative Abundance"</span>,</span>
-<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Partial dependence"</span>) <span class="sc">+</span></span>
-<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate a partial dependence plot for rate</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>pd_km <span class="ot">&lt;-</span> <span class="fu">calculate_pd</span>(<span class="st">"effort_speed_kmph"</span>,</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">er_model =</span> er_model,</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">count_model =</span> count_model,</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>                        <span class="at">cal_model =</span> calibration_model,</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>                        <span class="at">data =</span> checklists_train) <span class="sc">%&gt;%</span> </span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">effort_speed_kmph =</span> x, relative_abundance)</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a><span class="co"># partial dependence plot</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pd_km) <span class="sc">+</span></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> effort_speed_kmph, <span class="at">y =</span> relative_abundance) <span class="sc">+</span></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">5.5</span> <span class="sc">/</span> <span class="fl">3.5</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">#scale_x_continuous(breaks = seq(0, 6, by = 1)) +</span></span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlim</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">5</span>)) <span class="sc">+</span></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Effort Speed (km/h))"</span>,</span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Relative Abundance"</span>,</span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Partial dependence"</span>) <span class="sc">+</span></span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -969,130 +971,130 @@ Checkpoint
 </div>
 <p>This looks good. It’s not the absolute peak of the rate partial, but it’s pretty close, especially given the magnitude of the range for this partial. Let’s add all the effort variables to the prediction grid.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>pred_grid_eff <span class="ot">&lt;-</span> pred_grid <span class="sc">%&gt;%</span> </span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">year =</span> <span class="dv">2022</span>,</span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>         <span class="at">day_of_year =</span> <span class="dv">349</span>,</span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">solar_noon_diff =</span> <span class="sc">-</span><span class="dv">5</span>,</span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">is_stationary =</span> <span class="dv">0</span>,</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">effort_hrs =</span> <span class="dv">3</span>,</span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">effort_distance_km =</span> <span class="dv">5</span>,</span>
-<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>         <span class="at">effort_speed_kmph =</span> <span class="fl">5.5</span> <span class="sc">/</span> <span class="dv">3</span>,</span>
-<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>         <span class="at">num_observers =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>pred_grid_eff <span class="ot">&lt;-</span> pred_grid <span class="sc">%&gt;%</span> </span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">year =</span> <span class="dv">2022</span>,</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>         <span class="at">day_of_year =</span> <span class="dv">349</span>,</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">solar_noon_diff =</span> <span class="sc">-</span><span class="dv">5</span>,</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">is_stationary =</span> <span class="dv">0</span>,</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">effort_hrs =</span> <span class="dv">3</span>,</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">effort_distance_km =</span> <span class="dv">5</span>,</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>         <span class="at">effort_speed_kmph =</span> <span class="fl">5.5</span> <span class="sc">/</span> <span class="dv">3</span>,</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>         <span class="at">num_observers =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>First, we’ll estimate binary presence/absence of the range boundary with an encounter rate prediction using these maximized effort values. Then we’ll reset the effort values the more standardized values of 1 hour, 2 km, and 2 kmph. These values are close to the means and medians of the data distribution. After we’ve reset these effort values, we’ll estimate calibrated encounter rate, count, and abundance for each point on the prediction grid.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># binary presence/absence</span></span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>pred_binary_er <span class="ot">&lt;-</span> <span class="fu">predict</span>(er_model, <span class="at">data =</span> pred_grid_eff, <span class="at">type =</span> <span class="st">"response"</span>)</span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>pred_binary_er <span class="ot">&lt;-</span> pred_binary_er<span class="sc">$</span>predictions[, <span class="dv">2</span>]</span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>pred_binary <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(pred_binary_er <span class="sc">&gt;</span> threshold)</span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="co"># set prediction values for effort back to standardized values</span></span>
-<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>pred_grid_eff<span class="sc">$</span>effort_hrs <span class="ot">&lt;-</span> <span class="dv">1</span></span>
-<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>pred_grid_eff<span class="sc">$</span>effort_distance_km <span class="ot">&lt;-</span> <span class="dv">2</span></span>
-<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>pred_grid_eff<span class="sc">$</span>effort_speed_kmph <span class="ot">&lt;-</span> <span class="dv">2</span></span>
-<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a><span class="co"># encounter rate estimate</span></span>
-<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>pred_er <span class="ot">&lt;-</span> <span class="fu">predict</span>(er_model, <span class="at">data =</span> pred_grid_eff, <span class="at">type =</span> <span class="st">"response"</span>)</span>
-<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>pred_er <span class="ot">&lt;-</span> pred_er<span class="sc">$</span>predictions[, <span class="dv">2</span>]</span>
-<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a><span class="co"># apply calibration</span></span>
-<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>pred_er_cal <span class="ot">&lt;-</span> <span class="fu">predict</span>(calibration_model, </span>
-<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>                       <span class="fu">data.frame</span>(<span class="at">pred =</span> pred_er), </span>
-<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>                       <span class="at">type =</span> <span class="st">"response"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.numeric</span>()</span>
-<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a><span class="co"># add predicted encounter rate required for count estimates</span></span>
-<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>pred_grid_eff<span class="sc">$</span>predicted_er <span class="ot">&lt;-</span> pred_er</span>
-<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a><span class="co"># count estimate</span></span>
-<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>pred_count <span class="ot">&lt;-</span> <span class="fu">predict</span>(count_model, <span class="at">data =</span> pred_grid_eff, <span class="at">type =</span> <span class="st">"response"</span>)</span>
-<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>pred_count <span class="ot">&lt;-</span> pred_count<span class="sc">$</span>predictions</span>
-<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a><span class="co"># add estimates to prediction grid</span></span>
-<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a>predictions <span class="ot">&lt;-</span> pred_grid_eff <span class="sc">%&gt;%</span> </span>
-<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(srd_id, latitude, longitude) <span class="sc">%&gt;%</span> </span>
-<span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_cols</span>(<span class="at">in_range =</span> pred_binary,</span>
-<span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a>            <span class="at">encounter_rate =</span> pred_er_cal,</span>
-<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>            <span class="at">count =</span> pred_count) <span class="sc">%&gt;%</span> </span>
-<span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">encounter_rate =</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(encounter_rate, <span class="dv">0</span>), <span class="dv">1</span>),</span>
-<span id="cb28-34"><a href="#cb28-34" aria-hidden="true" tabindex="-1"></a>         <span class="at">abundance =</span> pred_er_cal <span class="sc">*</span> pred_count)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># binary presence/absence</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>pred_binary_er <span class="ot">&lt;-</span> <span class="fu">predict</span>(er_model, <span class="at">data =</span> pred_grid_eff, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>pred_binary_er <span class="ot">&lt;-</span> pred_binary_er<span class="sc">$</span>predictions[, <span class="dv">2</span>]</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>pred_binary <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(pred_binary_er <span class="sc">&gt;</span> threshold)</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="co"># set prediction values for effort back to standardized values</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>pred_grid_eff<span class="sc">$</span>effort_hrs <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>pred_grid_eff<span class="sc">$</span>effort_distance_km <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>pred_grid_eff<span class="sc">$</span>effort_speed_kmph <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a><span class="co"># encounter rate estimate</span></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>pred_er <span class="ot">&lt;-</span> <span class="fu">predict</span>(er_model, <span class="at">data =</span> pred_grid_eff, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>pred_er <span class="ot">&lt;-</span> pred_er<span class="sc">$</span>predictions[, <span class="dv">2</span>]</span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a><span class="co"># apply calibration</span></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a>pred_er_cal <span class="ot">&lt;-</span> <span class="fu">predict</span>(calibration_model, </span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a>                       <span class="fu">data.frame</span>(<span class="at">pred =</span> pred_er), </span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a>                       <span class="at">type =</span> <span class="st">"response"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb29-19"><a href="#cb29-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.numeric</span>()</span>
+<span id="cb29-20"><a href="#cb29-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-21"><a href="#cb29-21" aria-hidden="true" tabindex="-1"></a><span class="co"># add predicted encounter rate required for count estimates</span></span>
+<span id="cb29-22"><a href="#cb29-22" aria-hidden="true" tabindex="-1"></a>pred_grid_eff<span class="sc">$</span>predicted_er <span class="ot">&lt;-</span> pred_er</span>
+<span id="cb29-23"><a href="#cb29-23" aria-hidden="true" tabindex="-1"></a><span class="co"># count estimate</span></span>
+<span id="cb29-24"><a href="#cb29-24" aria-hidden="true" tabindex="-1"></a>pred_count <span class="ot">&lt;-</span> <span class="fu">predict</span>(count_model, <span class="at">data =</span> pred_grid_eff, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb29-25"><a href="#cb29-25" aria-hidden="true" tabindex="-1"></a>pred_count <span class="ot">&lt;-</span> pred_count<span class="sc">$</span>predictions</span>
+<span id="cb29-26"><a href="#cb29-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-27"><a href="#cb29-27" aria-hidden="true" tabindex="-1"></a><span class="co"># add estimates to prediction grid</span></span>
+<span id="cb29-28"><a href="#cb29-28" aria-hidden="true" tabindex="-1"></a>predictions <span class="ot">&lt;-</span> pred_grid_eff <span class="sc">%&gt;%</span> </span>
+<span id="cb29-29"><a href="#cb29-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(srd_id, latitude, longitude) <span class="sc">%&gt;%</span> </span>
+<span id="cb29-30"><a href="#cb29-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_cols</span>(<span class="at">in_range =</span> pred_binary,</span>
+<span id="cb29-31"><a href="#cb29-31" aria-hidden="true" tabindex="-1"></a>            <span class="at">encounter_rate =</span> pred_er_cal,</span>
+<span id="cb29-32"><a href="#cb29-32" aria-hidden="true" tabindex="-1"></a>            <span class="at">count =</span> pred_count) <span class="sc">%&gt;%</span> </span>
+<span id="cb29-33"><a href="#cb29-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">encounter_rate =</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(encounter_rate, <span class="dv">0</span>), <span class="dv">1</span>),</span>
+<span id="cb29-34"><a href="#cb29-34" aria-hidden="true" tabindex="-1"></a>         <span class="at">abundance =</span> pred_er_cal <span class="sc">*</span> pred_count)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we convert these estimates to raster format using the raster template.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>r_pred <span class="ot">&lt;-</span> predictions <span class="sc">%&gt;%</span> </span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># convert to spatial features</span></span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"longitude"</span>, <span class="st">"latitude"</span>), <span class="at">crs =</span> <span class="dv">4326</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="fu">crs</span>(raster_template)) <span class="sc">%&gt;%</span> </span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># rasterize</span></span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rasterize</span>(raster_template, </span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">field =</span> <span class="fu">c</span>(<span class="st">"in_range"</span>, <span class="st">"encounter_rate"</span>, <span class="st">"count"</span>, <span class="st">"abundance"</span>), </span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>            <span class="at">fun =</span> mean) <span class="sc">%&gt;%</span> <span class="co"># throws an error without</span></span>
-<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setNames</span>(<span class="fu">c</span>(<span class="st">"in_range"</span>, <span class="st">"encounter_rate"</span>, <span class="st">"count"</span>, <span class="st">"abundance"</span>))</span>
-<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="co"># trim global raster to study region</span></span>
-<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>r_pred <span class="ot">&lt;-</span> <span class="fu">trim</span>(r_pred)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>r_pred <span class="ot">&lt;-</span> predictions <span class="sc">%&gt;%</span> </span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># convert to spatial features</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"longitude"</span>, <span class="st">"latitude"</span>), <span class="at">crs =</span> <span class="dv">4326</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="fu">crs</span>(raster_template)) <span class="sc">%&gt;%</span> </span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># rasterize</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rasterize</span>(raster_template, </span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">field =</span> <span class="fu">c</span>(<span class="st">"in_range"</span>, <span class="st">"encounter_rate"</span>, <span class="st">"count"</span>, <span class="st">"abundance"</span>), </span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>            <span class="at">fun =</span> mean) <span class="sc">%&gt;%</span> <span class="co"># throws an error without</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setNames</span>(<span class="fu">c</span>(<span class="st">"in_range"</span>, <span class="st">"encounter_rate"</span>, <span class="st">"count"</span>, <span class="st">"abundance"</span>))</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a><span class="co"># trim global raster to study region</span></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>r_pred <span class="ot">&lt;-</span> <span class="fu">trim</span>(r_pred)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Prior to mapping these predictions, let’s load some contextual GIS data and project everything to a more suitable coordinate reference system.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load and project gis data</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>map_proj <span class="ot">&lt;-</span> <span class="st">"+proj=laea +lon_0=146.95 +lat_0=-19.15 +datum=WGS84 +units=m +no_defs"</span></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>ne_land <span class="ot">&lt;-</span> <span class="fu">read_sf</span>(<span class="st">"data/gis-data.gpkg"</span>, <span class="st">"ne_land"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>ne_country_lines <span class="ot">&lt;-</span> <span class="fu">read_sf</span>(<span class="st">"data/gis-data.gpkg"</span>, <span class="st">"ne_country_lines"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>ne_state_lines <span class="ot">&lt;-</span> <span class="fu">read_sf</span>(<span class="st">"data/gis-data.gpkg"</span>, <span class="st">"ne_state_lines"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
-<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>study_region_proj <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(study_region, <span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
-<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
-<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a><span class="co"># project the raster data</span></span>
-<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>r_pred_proj <span class="ot">&lt;-</span> <span class="fu">crop</span>(r_pred, <span class="fu">st_transform</span>(study_region, <span class="fu">crs</span>(r_pred))) <span class="sc">%&gt;%</span> </span>
-<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">project</span>(map_proj, <span class="at">method =</span> <span class="st">"near"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load and project gis data</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>map_proj <span class="ot">&lt;-</span> <span class="st">"+proj=laea +lon_0=146.95 +lat_0=-19.15 +datum=WGS84 +units=m +no_defs"</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>ne_land <span class="ot">&lt;-</span> <span class="fu">read_sf</span>(<span class="st">"data/gis-data.gpkg"</span>, <span class="st">"ne_land"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>ne_country_lines <span class="ot">&lt;-</span> <span class="fu">read_sf</span>(<span class="st">"data/gis-data.gpkg"</span>, <span class="st">"ne_country_lines"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>ne_state_lines <span class="ot">&lt;-</span> <span class="fu">read_sf</span>(<span class="st">"data/gis-data.gpkg"</span>, <span class="st">"ne_state_lines"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>study_region_proj <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(study_region, <span class="at">crs =</span> map_proj) <span class="sc">%&gt;%</span> </span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_geometry</span>()</span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a><span class="co"># project the raster data</span></span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>r_pred_proj <span class="ot">&lt;-</span> <span class="fu">crop</span>(r_pred, <span class="fu">st_transform</span>(study_region, <span class="fu">crs</span>(r_pred))) <span class="sc">%&gt;%</span> </span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">project</span>(map_proj, <span class="at">method =</span> <span class="st">"near"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Finally we’ll produce a map of relative abundance. The values shown on this map are the expected number of birds seen by an average eBirder conducting a 2 hour, 1 km checklist on December 15, 2022 at the optimal time of day for detecting the species. Prior to mapping the relative abundance, we’ll multiple by the <code>in_range</code> layer, which will produce a map showing zero relative abundance where the model predicts that the species does not occur.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># in range abundance</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>r_plot <span class="ot">&lt;-</span> r_pred_proj[[<span class="st">"abundance"</span>]] <span class="sc">*</span> r_pred_proj[[<span class="st">"in_range"</span>]]</span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="fl">0.25</span>, <span class="fl">0.25</span>, <span class="fl">0.25</span>, <span class="fl">0.25</span>))</span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="co"># set up plot area</span></span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(study_region_proj, <span class="at">col =</span> <span class="cn">NA</span>, <span class="at">border =</span> <span class="cn">NA</span>)</span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ne_land, <span class="at">col =</span> <span class="st">"#cfcfcf"</span>, <span class="at">border =</span> <span class="st">"#888888"</span>, <span class="at">lwd =</span> <span class="fl">0.5</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a><span class="co"># define quantile breaks, excluding zeros</span></span>
-<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>brks <span class="ot">&lt;-</span> <span class="fu">ifel</span>(r_plot <span class="sc">&gt;</span> <span class="dv">0</span>, r_plot, <span class="cn">NA</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">global</span>(<span class="at">fun =</span> quantile, </span>
-<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>         <span class="at">probs =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="fl">0.1</span>), <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.numeric</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>()</span>
-<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a><span class="co"># label the bottom, middle, and top value</span></span>
-<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>lbls <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">min</span>(brks), <span class="fu">median</span>(brks), <span class="fu">max</span>(brks)), <span class="dv">2</span>)</span>
-<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a><span class="co"># ebird status and trends color palette</span></span>
-<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>pal <span class="ot">&lt;-</span> <span class="fu">ebirdst_palettes</span>(<span class="at">n =</span> <span class="fu">length</span>(brks) <span class="sc">-</span> <span class="dv">1</span>, <span class="at">type =</span> <span class="st">"weekly"</span>)</span>
-<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(r_plot, </span>
-<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a>     <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"#e6e6e6"</span>, pal), <span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">0</span>, brks), </span>
-<span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a>     <span class="at">maxpixels =</span> <span class="fu">ncell</span>(r_plot),</span>
-<span id="cb31-22"><a href="#cb31-22" aria-hidden="true" tabindex="-1"></a>     <span class="at">legend =</span> <span class="cn">FALSE</span>, <span class="at">axes =</span> <span class="cn">FALSE</span>, <span class="at">bty =</span> <span class="st">"n"</span>,</span>
-<span id="cb31-23"><a href="#cb31-23" aria-hidden="true" tabindex="-1"></a>     <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb31-24"><a href="#cb31-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-25"><a href="#cb31-25" aria-hidden="true" tabindex="-1"></a><span class="co"># borders</span></span>
-<span id="cb31-26"><a href="#cb31-26" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ne_state_lines, <span class="at">col =</span> <span class="st">"#ffffff"</span>, <span class="at">lwd =</span> <span class="fl">0.75</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb31-27"><a href="#cb31-27" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ne_country_lines, <span class="at">col =</span> <span class="st">"#ffffff"</span>, <span class="at">lwd =</span> <span class="fl">1.5</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb31-28"><a href="#cb31-28" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(study_region_proj, <span class="at">border =</span> <span class="st">"#000000"</span>, <span class="at">col =</span> <span class="cn">NA</span>, <span class="at">lwd =</span> <span class="dv">1</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb31-29"><a href="#cb31-29" aria-hidden="true" tabindex="-1"></a><span class="fu">box</span>()</span>
-<span id="cb31-30"><a href="#cb31-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-31"><a href="#cb31-31" aria-hidden="true" tabindex="-1"></a><span class="co"># legend</span></span>
-<span id="cb31-32"><a href="#cb31-32" aria-hidden="true" tabindex="-1"></a><span class="fu">image.plot</span>(<span class="at">zlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="at">legend.only =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb31-33"><a href="#cb31-33" aria-hidden="true" tabindex="-1"></a>           <span class="at">col =</span> pal, <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">length.out =</span> <span class="fu">length</span>(brks)),</span>
-<span id="cb31-34"><a href="#cb31-34" aria-hidden="true" tabindex="-1"></a>           <span class="at">smallplot =</span> <span class="fu">c</span>(<span class="fl">0.89</span>, <span class="fl">0.91</span>, <span class="fl">0.2</span>, <span class="fl">0.8</span>),</span>
-<span id="cb31-35"><a href="#cb31-35" aria-hidden="true" tabindex="-1"></a>           <span class="at">horizontal =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb31-36"><a href="#cb31-36" aria-hidden="true" tabindex="-1"></a>           <span class="at">axis.args =</span> <span class="fu">list</span>(<span class="at">at =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.5</span>, <span class="dv">1</span>), <span class="at">labels =</span> lbls,</span>
-<span id="cb31-37"><a href="#cb31-37" aria-hidden="true" tabindex="-1"></a>                            <span class="at">fg =</span> <span class="st">"black"</span>, <span class="at">col.axis =</span> <span class="st">"black"</span>,</span>
-<span id="cb31-38"><a href="#cb31-38" aria-hidden="true" tabindex="-1"></a>                            <span class="at">cex.axis =</span> <span class="fl">0.75</span>, <span class="at">lwd.ticks =</span> <span class="fl">0.5</span>),</span>
-<span id="cb31-39"><a href="#cb31-39" aria-hidden="true" tabindex="-1"></a>           <span class="at">legend.args =</span> <span class="fu">list</span>(<span class="at">text =</span> <span class="st">"Relative Abundance"</span>,</span>
-<span id="cb31-40"><a href="#cb31-40" aria-hidden="true" tabindex="-1"></a>                              <span class="at">side =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"black"</span>,</span>
-<span id="cb31-41"><a href="#cb31-41" aria-hidden="true" tabindex="-1"></a>                              <span class="at">cex =</span> <span class="dv">1</span>, <span class="at">line =</span> <span class="dv">0</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># in range abundance</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>r_plot <span class="ot">&lt;-</span> r_pred_proj[[<span class="st">"abundance"</span>]] <span class="sc">*</span> r_pred_proj[[<span class="st">"in_range"</span>]]</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="fl">0.25</span>, <span class="fl">0.25</span>, <span class="fl">0.25</span>, <span class="fl">0.25</span>))</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="co"># set up plot area</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(study_region_proj, <span class="at">col =</span> <span class="cn">NA</span>, <span class="at">border =</span> <span class="cn">NA</span>)</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ne_land, <span class="at">col =</span> <span class="st">"#cfcfcf"</span>, <span class="at">border =</span> <span class="st">"#888888"</span>, <span class="at">lwd =</span> <span class="fl">0.5</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a><span class="co"># define quantile breaks, excluding zeros</span></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>brks <span class="ot">&lt;-</span> <span class="fu">ifel</span>(r_plot <span class="sc">&gt;</span> <span class="dv">0</span>, r_plot, <span class="cn">NA</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">global</span>(<span class="at">fun =</span> quantile, </span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>         <span class="at">probs =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="fl">0.1</span>), <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.numeric</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>()</span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a><span class="co"># label the bottom, middle, and top value</span></span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>lbls <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">min</span>(brks), <span class="fu">median</span>(brks), <span class="fu">max</span>(brks)), <span class="dv">2</span>)</span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a><span class="co"># ebird status and trends color palette</span></span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>pal <span class="ot">&lt;-</span> <span class="fu">ebirdst_palettes</span>(<span class="at">n =</span> <span class="fu">length</span>(brks) <span class="sc">-</span> <span class="dv">1</span>, <span class="at">type =</span> <span class="st">"weekly"</span>)</span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(r_plot, </span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>     <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"#e6e6e6"</span>, pal), <span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">0</span>, brks), </span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>     <span class="at">maxpixels =</span> <span class="fu">ncell</span>(r_plot),</span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>     <span class="at">legend =</span> <span class="cn">FALSE</span>, <span class="at">axes =</span> <span class="cn">FALSE</span>, <span class="at">bty =</span> <span class="st">"n"</span>,</span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a>     <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-25"><a href="#cb32-25" aria-hidden="true" tabindex="-1"></a><span class="co"># borders</span></span>
+<span id="cb32-26"><a href="#cb32-26" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ne_state_lines, <span class="at">col =</span> <span class="st">"#ffffff"</span>, <span class="at">lwd =</span> <span class="fl">0.75</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb32-27"><a href="#cb32-27" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ne_country_lines, <span class="at">col =</span> <span class="st">"#ffffff"</span>, <span class="at">lwd =</span> <span class="fl">1.5</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb32-28"><a href="#cb32-28" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(study_region_proj, <span class="at">border =</span> <span class="st">"#000000"</span>, <span class="at">col =</span> <span class="cn">NA</span>, <span class="at">lwd =</span> <span class="dv">1</span>, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb32-29"><a href="#cb32-29" aria-hidden="true" tabindex="-1"></a><span class="fu">box</span>()</span>
+<span id="cb32-30"><a href="#cb32-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-31"><a href="#cb32-31" aria-hidden="true" tabindex="-1"></a><span class="co"># legend</span></span>
+<span id="cb32-32"><a href="#cb32-32" aria-hidden="true" tabindex="-1"></a><span class="fu">image.plot</span>(<span class="at">zlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="at">legend.only =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb32-33"><a href="#cb32-33" aria-hidden="true" tabindex="-1"></a>           <span class="at">col =</span> pal, <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">length.out =</span> <span class="fu">length</span>(brks)),</span>
+<span id="cb32-34"><a href="#cb32-34" aria-hidden="true" tabindex="-1"></a>           <span class="at">smallplot =</span> <span class="fu">c</span>(<span class="fl">0.89</span>, <span class="fl">0.91</span>, <span class="fl">0.2</span>, <span class="fl">0.8</span>),</span>
+<span id="cb32-35"><a href="#cb32-35" aria-hidden="true" tabindex="-1"></a>           <span class="at">horizontal =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb32-36"><a href="#cb32-36" aria-hidden="true" tabindex="-1"></a>           <span class="at">axis.args =</span> <span class="fu">list</span>(<span class="at">at =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.5</span>, <span class="dv">1</span>), <span class="at">labels =</span> lbls,</span>
+<span id="cb32-37"><a href="#cb32-37" aria-hidden="true" tabindex="-1"></a>                            <span class="at">fg =</span> <span class="st">"black"</span>, <span class="at">col.axis =</span> <span class="st">"black"</span>,</span>
+<span id="cb32-38"><a href="#cb32-38" aria-hidden="true" tabindex="-1"></a>                            <span class="at">cex.axis =</span> <span class="fl">0.75</span>, <span class="at">lwd.ticks =</span> <span class="fl">0.5</span>),</span>
+<span id="cb32-39"><a href="#cb32-39" aria-hidden="true" tabindex="-1"></a>           <span class="at">legend.args =</span> <span class="fu">list</span>(<span class="at">text =</span> <span class="st">"Relative Abundance"</span>,</span>
+<span id="cb32-40"><a href="#cb32-40" aria-hidden="true" tabindex="-1"></a>                              <span class="at">side =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"black"</span>,</span>
+<span id="cb32-41"><a href="#cb32-41" aria-hidden="true" tabindex="-1"></a>                              <span class="at">cex =</span> <span class="dv">1</span>, <span class="at">line =</span> <span class="dv">0</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">

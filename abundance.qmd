@@ -388,10 +388,10 @@ From the random forest model, we can glean two important sources of information 
 
 ### Predictor importance {#sec-abundance-habitat-pi}
 
-During the process of training a random forests model, some variables are removed at each node of the trees that make up the random forests. **Predictor importance** is based on the mean decrease in accuracy of the model when a given predictor is not used. It's technically an average [Gini index](https://en.wikipedia.org/wiki/Gini_coefficient), but essentially larger values indicate that a predictor is more important to the model.
+During the process of training a random forests model, some variables are removed at each node of the trees that make up the random forests. **Predictor importance** is based on the mean decrease in accuracy of the model when a given predictor is not used. It's technically an average [Gini index](https://en.wikipedia.org/wiki/Gini_coefficient), but essentially larger values indicate that a predictor is more important to the model. First, we can look at the predictor importances for the encounter rate model.
 
-```{r}
-#| label: abundance-habitat-pi
+```{r pi-er}
+#| label: abundance-habitat-pi-er
 pi_er <- er_model$variable.importance
 pi_er <- data.frame(predictor = names(pi_er), importance = unname(pi_er)) %>% 
   arrange(desc(importance))
@@ -407,12 +407,17 @@ ggplot(head(pi_er, 10)) +
   theme_minimal() +
   theme(panel.grid = element_blank(),
         panel.grid.major.x = element_line(colour = "#cccccc", linewidth = 0.5))
+```
 
-count_er <- count_model$variable.importance
-count_er <- data.frame(predictor = names(count_er), importance = unname(count_er)) %>% 
+Second, we can look at the predictor importances for the count model.
+
+```{r pi-count}
+#| label: abundance-habitat-pi-count
+pi_count <- count_model$variable.importance
+pi_count <- data.frame(predictor = names(pi_count), importance = unname(pi_count)) %>% 
   arrange(desc(importance))
 # plot top 10 predictors
-ggplot(head(count_er, 10)) + 
+ggplot(head(pi_count, 10)) + 
   aes(x = fct_reorder(predictor, importance), y = importance) +
   geom_col() +
   geom_hline(yintercept = 0, linewidth = 2, colour = "#555555") +
@@ -426,7 +431,7 @@ ggplot(head(count_er, 10)) +
 
 ```
 
-The most important predictors of detection/non-detection are often effort variables. Indeed, that's the case here: checklist duration, distance traveled, and time of day (`solar_noon_diff`) all appear in the top 5 predictors. This is not surprising: going out at the right time of day and expending more effort searching will lead to a higher probability of detecting Wood Thrush. Focusing on the habitat variables, both elevation and slope variables have high importance, and the top habitat variables are from evergreen broadleaf forest and open forest. Note however, that high importance doesn't tell us the direction of the relationship with detection, for that we'll have to look at partial dependence plots.
+The most important predictors of detection/non-detection are often effort variables. Indeed, that's the case here: checklist duration, distance traveled, and time of day (`solar_noon_diff`) all appear in the top 5 predictors. This is not surprising: going out at the right time of day and expending more effort searching will lead to a higher probability of detecting most birds. Focusing on the habitat variables, evergreen broadleaf forest and open forest are in the top 10. Note however, that high importance doesn't tell us the direction of the relationship with detection, for that we'll have to look at partial dependence plots.
 
 ::: {.callout-caution icon=false}
 ## Exercise
@@ -510,7 +515,7 @@ calculate_pd <- function(predictor, er_model, count_model, cal_model, data,
 }
 ```
 
-Now we'll use this function to calculate partial dependence for the top 9 predictor variables.
+Now we'll use this function to calculate partial dependence for the top six predictor variables.
 
 ```{r}
 #| label:  abundance-habitat-pd-calculate
@@ -599,7 +604,7 @@ ggplot(pd_time) +
   theme_bw()
 ```
 
-Based on the above plot, it appears that about 5 hours before solar noon is the optimal time. We could stop here and set our prediction values to fixed units, but there is significant value in defining these prediction units differently for our estimates of range boundary. Think of this as two different searches. First, a search goes out for as long (time and distance) as it takes to detect the species in all places (maximized detection). Then a separate search goes out for a standardized amount of duration and distance. In this way, we get the best range boundary possible combined with standardized estimates of encounter rate, count, and relative abundance within that range boundary. To maximize the effort units for predicting the range boundary, we'll need to look at the peaks of the partials for these predictors as well.
+Based on the above plot, it appears that about 5 hours before solar noon is the optimal time. We could stop here and set the rest of our prediction values to fixed units, but there is significant value in defining these prediction units differently for our estimates of range boundary (presence/absence). Think of this as two different searches. First, a search goes out for as long (time and distance) as it takes to detect the species in all places (maximized detection). Then a separate search goes out for a standardized amount of duration and distance. In this way, we get the best range boundary possible combined with standardized estimates of encounter rate, count, and relative abundance within that range boundary. To maximize the effort units for predicting the range boundary, we'll need to look at the peaks of the partials for these predictors as well.
 
 ```{r}
 #| label:  abundance-predict-pd-hrs
