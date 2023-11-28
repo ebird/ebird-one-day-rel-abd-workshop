@@ -72,58 +72,6 @@ study_region <- read_sf("data/ibra61_reg.gpkg") %>%
 
 # extract variable importance
 
-# plot
-ggplot(head(pi, 10)) +
-  aes(x = fct_reorder(predictor, importance), y = importance) +
-  geom_col() +
-  geom_hline(yintercept = 0, linewidth = 2, colour = "#555555") +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_flip() +
-  labs(x = NULL,
-       y = "Predictor Importance (Gini Index)") +
-  theme_minimal() +
-  theme(panel.grid = element_blank(),
-        panel.grid.major.x = element_line(colour = "#cccccc", linewidth = 0.5))
-
-# Partial dependence ---
-
-# function to calculate partial dependence for a single predictor
-calculate_pd <- function(predictor, model, data,
-                         x_res = 25, n = 1000) {
-  # create prediction grid using quantiles
-  x_grid <- quantile(data[[predictor]],
-                     probs = seq(from = 0, to = 1, length = x_res),
-                     na.rm = TRUE)
-  # remove duplicates
-  x_grid <- x_grid[!duplicated(signif(x_grid, 8))]
-  x_grid <- unname(unique(x_grid))
-  grid <- data.frame(predictor = predictor, x = x_grid)
-  names(grid) <- c("predictor", predictor)
-
-  # subsample training data
-  n <- min(n, nrow(data))
-  data <- data[sample(seq.int(nrow(data)), size = n, replace = FALSE), ]
-
-  # drop focal predictor from data
-  data <- data[names(data) != predictor]
-  grid <- merge(grid, data, all = TRUE)
-
-  # predict
-  p <- predict(model, data = grid)
-
-  # summarize
-  pd <- grid[, c("predictor", predictor)]
-  names(pd) <- c("predictor", "x")
-  pd$encounter_rate <- p$predictions[, 2]
-  pd <- dplyr::group_by(pd, predictor, x) %>%
-    dplyr::summarise(encounter_rate = mean(encounter_rate, na.rm = TRUE),
-                     .groups = "drop")
-
-  return(pd)
-}
-
-# calculate for top variables
-
 # plot top 10 predictors for encounter rate model
 ggplot(head(pi_er, 10)) +
   aes(x = fct_reorder(predictor, importance), y = importance) +
@@ -150,6 +98,70 @@ ggplot(head(pi_count, 10)) +
   theme(panel.grid = element_blank(),
         panel.grid.major.x = element_line(colour = "#cccccc", linewidth = 0.5))
 
+
+# Partial dependence ---
+
+# function to calculate partial dependence for a single predictor
+calculate_pd <- function(predictor, er_model, count_model, cal_model, data,
+                         x_res = 25, n = 1000) {
+  # create prediction grid using quantiles
+  x_grid <- quantile(data[[predictor]],
+                     probs = seq(from = 0, to = 1, length = x_res),
+                     na.rm = TRUE)
+  # remove duplicates
+  x_grid <- x_grid[!duplicated(signif(x_grid, 8))]
+  x_grid <- unname(unique(x_grid))
+  grid <- data.frame(predictor = predictor, x = x_grid)
+  names(grid) <- c("predictor", predictor)
+
+  # subsample training data
+  n <- min(n, nrow(data))
+  data <- data[sample(seq.int(nrow(data)), size = n, replace = FALSE), ]
+
+  # drop focal predictor from data
+  data <- data[names(data) != predictor]
+  grid <- merge(grid, data, all = TRUE)
+
+  # predict
+  p_er <- predict(er_model, data = grid)
+  grid$predicted_er <- p_er$predictions[, 2]
+  p_count <- predict(count_model, data = grid)
+
+  # summarize
+  pd <- grid[, c("predictor", predictor)]
+  names(pd) <- c("predictor", "x")
+  pd$encounter_rate <- p_er$predictions[, 2]
+  pd$count <- p_count$predictions
+
+  er_cal <- stats::predict(cal_model, newdata = tibble(pred = pd$encounter_rate),
+                           type = "response")
+  er_cal[er_cal < 0] <- 0
+  er_cal[er_cal > 1] <- 1
+  pd$er_cal <- er_cal
+
+  pd$relative_abundance <- pd$er_cal * pd$count
+  pd <- dplyr::group_by(pd, predictor, x) %>%
+    dplyr::summarise(relative_abundance = mean(relative_abundance, na.rm = TRUE),
+                     .groups = "drop")
+
+  return(pd)
+}
+
+# calculate for top variables
+
+# plot top 10 predictors for encounter rate model
+ggplot(pd) +
+  aes(x = x, y = relative_abundance) +
+  geom_line() +
+  geom_point() +
+  facet_wrap(~ as_factor(predictor), ncol = 2, scales = "free") +
+  labs(x = NULL, y = "Relative Abundnace") +
+  theme_minimal() +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.line = element_line(color = "grey60"),
+        axis.ticks  = element_line(color = "grey60"))
+
 # Prediction ---
 
 # read in prediction grid
@@ -166,12 +178,12 @@ ggplot(head(pi_count, 10)) +
 
 # plot
 ggplot(pd_time) +
-  aes(x = solar_noon_diff, y = encounter_rate) +
+  aes(x = solar_noon_diff, y = relative_abundance) +
   geom_line() +
   geom_point() +
   scale_x_continuous(breaks = seq(-12, 13, by = 3)) +
   labs(x = "Difference from solar noon",
-       y = "Encounter",
+       y = "Relative Abundance",
        title = "Partial dependence") +
   theme_bw()
 
@@ -179,12 +191,12 @@ ggplot(pd_time) +
 
 # plot
 ggplot(pd_hrs) +
-  aes(x = effort_hrs, y = encounter_rate) +
+  aes(x = effort_hrs, y = relative_abundance) +
   geom_line() +
   geom_point() +
   scale_x_continuous(breaks = seq(0, 6, by = 1)) +
   labs(x = "Effort Hours",
-       y = "Encounter",
+       y = "Relative Abundance",
        title = "Partial dependence") +
   theme_bw()
 
@@ -192,27 +204,26 @@ ggplot(pd_hrs) +
 
 # plot
 ggplot(pd_km) +
-  aes(x = effort_distance_km, y = encounter_rate) +
+  aes(x = effort_distance_km, y = relative_abundance) +
   geom_line() +
   geom_point() +
   scale_x_continuous(breaks = seq(0, 10, by = 1)) +
   labs(x = "Effort Distance (km)",
-       y = "Encounter",
+       y = "Relative Abundance",
        title = "Partial dependence") +
   theme_bw()
 
 # rate
 
 # plot
-ggplot(pd_km) +
-  aes(x = effort_speed_kmph, y = encounter_rate) +
+aes(x = effort_speed_kmph, y = relative_abundance) +
   geom_line() +
   geom_point() +
   geom_vline(xintercept = 5.5 / 3.5, col = "red") +
   #scale_x_continuous(breaks = seq(0, 6, by = 1)) +
   xlim(c(0, 5)) +
   labs(x = "Effort Speed (km/h))",
-       y = "Encounter",
+       y = "Relative Abundance",
        title = "Partial dependence") +
   theme_bw()
 

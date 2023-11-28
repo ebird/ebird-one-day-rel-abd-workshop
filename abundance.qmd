@@ -191,6 +191,8 @@ er_model <- ranger(formula =  as.factor(obs_detected) ~ .,
                    sample.fraction = c(detection_freq, detection_freq))
 ```
 
+#### Calibrating
+
 Predicted probabilities from a random forests model do not always line up with the observed frequency of detection. We’ll address this mismatch using **model calibration**, which aligns the estimated probabilities to the observed frequencies. In particular, to calibrate our model results, we predict encounter rate for each checklist in the training set, then fit a binomial Generalized Additive Model (GAM) with the real observations as the response and the predicted encounter rate as the predictor variable.
 
 ```{r}
@@ -204,6 +206,48 @@ calibration_model <- scam(obs ~ s(pred, k = 6, bs = "mpi"),
                           gamma = 2,
                           data = obs_pred)
 ```
+
+To use the calibration model as a diagnostic tool, we’ll group the predicted encounter rates into bins, then calculate the mean predicted and observed encounter rates within each bin. This can be compared to predictions from the calibration model.
+
+```{r}
+# group the predicted encounter rate into bins of width 0.02
+# then calculate the mean observed encounter rates in each bin
+er_breaks <- seq(0, 1, by = 0.02)
+mean_er <- obs_pred %>%
+  mutate(er_bin = cut(pred, breaks = er_breaks, include.lowest = TRUE)) %>%
+  group_by(er_bin) %>%
+  summarise(n_checklists = n(),
+            pred = mean(pred), 
+            obs = mean(obs),
+            .groups = "drop")
+
+# make predictions from the calibration model
+cal_pred <- data.frame(pred = er_breaks)
+cal_pred <- predict(calibration_model, cal_pred, type = "response") %>% 
+  bind_cols(cal_pred, calibrated = .)
+
+# compared binned mean encounter rates to calibration model
+ggplot(cal_pred) +
+  aes(x = pred, y = calibrated) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  geom_line(color = "blue") +
+  geom_point(data = mean_er, 
+             aes(x = pred, y = obs),
+             size = 2, alpha = 0.6,
+             show.legend = FALSE) +
+  labs(x = "Estimated encounter rate",
+       y = "Observed encounter rate",
+       title = "Calibration model") +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1))
+```
+
+From this plot we can clearly see that the estimated encounter rates are mostly much larger than the observed encounter rates (all points fall below the dashed 
+ line). So we see that the model is not well calibrated. However, we do see from the points that the relative ranking of predictions is largely good: sites with estimated higher encounter rate do mostly have higher observed encounter rates.
+
+If you’re using this model to calibrate your estimates, notice that the calibration curve can produce probabilities greater than 1 and less than 0, so when applying the calibration we also need to restrict the predictions to be between 0 and 1. It’s possible to run a logistic regression for the calibration to remove these predictions less than 0 or greater than 1; however, we’ve found the Gaussian constrained GAM to be more stable than the logistic constrained GAM.
+
+
+#### Thresholding
 
 The random forest model produces continuous estimates of encounter rate from 0-1. However, for many applications, including selecting which observations are included in the next stage of the hurdle, we'll need to reclassify this continuous probability to a binary presence/absence estimate. This reclassification is done by setting a threshold above which the species is predicted to be absent. We recommend selecting a threshold using the [MCC-F1 curve](https://arxiv.org/abs/2006.11278), which performs well for class imbalanced data. The R package `mccf1` implements this method.
 
@@ -224,6 +268,7 @@ For the second step of the hurdle model, we train a random forests model to esti
 ```{r}
 #| label: abundance-hurdle-count-subset
 # attach the predicted encounter rate
+# we'll use this to include checklists that are predicted to be above the threshold
 train_count <- checklists_train
 train_count$pred_er <- er_model$predictions[, 2]
 # subset to only observed or predicted detections
